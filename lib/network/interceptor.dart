@@ -5,7 +5,7 @@ import "package:hive_flutter/hive_flutter.dart";
 import "endpoints.dart";
 import "requests.dart";
 
-final _hive = Hive.box("myBox");
+Box? get _hive => Hive.isBoxOpen("myBox") ? Hive.box("myBox") : null;
 
 class DioInterceptor extends Interceptor {
   const DioInterceptor({required this.dioHandler});
@@ -13,32 +13,47 @@ class DioInterceptor extends Interceptor {
   final Dio dioHandler;
 
   @override
-  void onRequest(options, handler) {
-    options.headers.addAll({
-      "Refresh": _hive.get("refreshToken"),
-      "Authorization": _hive.get("authToken"),
-    });
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final dynamic authToken = _hive?.get("authToken");
+    final dynamic refreshToken = _hive?.get("refreshToken");
+    final dynamic customAccount = _hive?.get("accountId");
+
+    if (authToken != null && authToken.toString().isNotEmpty) {
+      options.headers["authorization"] = authToken.toString();
+    }
+    if (refreshToken != null && refreshToken.toString().isNotEmpty) {
+      options.headers["refresh"] = refreshToken.toString();
+    }
+    if (customAccount != null && customAccount.toString().isNotEmpty) {
+      options.headers["account"] = customAccount.toString();
+    }
 
     super.onRequest(options, handler);
   }
 
   @override
-  void onError(err, handler) async {
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
     final res = err.response?.data;
     final code = err.response?.statusCode;
+    final isRefreshEndpoint =
+        err.requestOptions.path.contains(apiEndpoint(ApiEndpoints.refreshToken));
 
-    if (code == 401 && res["message"] == "Invalid token") {
+    if (code == 401 &&
+        !isRefreshEndpoint &&
+        res is Map &&
+        (res["message"] == "Invalid token" || res["message"] == "Token expired")) {
       try {
-        await _InterceptorMethods().refreshToken();
-        handler.resolve(
-          await _InterceptorMethods().retryRequest(
+        final newAuthToken = await _InterceptorMethods().refreshToken();
+        if (newAuthToken != null) {
+          err.requestOptions.headers["authorization"] = newAuthToken;
+          final response = await _InterceptorMethods().retryRequest(
             err.requestOptions,
             dioHandler,
-          ),
-        );
-      } catch (err) {
-        debugPrint("Error occurred with Interceptor - $err");
-        return null;
+          );
+          return handler.resolve(response);
+        }
+      } catch (e) {
+        debugPrint("Error occurred with Interceptor token refresh: $e");
       }
     }
 
@@ -47,9 +62,17 @@ class DioInterceptor extends Interceptor {
 }
 
 class _InterceptorMethods with HTTPRequests {
-  Future<void> refreshToken() async {
+  Future<String?> refreshToken() async {
     final data = await getRequest(apiEndpoint(ApiEndpoints.refreshToken));
-    if (data != null) _hive.put("authToken", data["authToken"]);
+    if (data != null && data["authToken"] != null) {
+      final token = data["authToken"].toString();
+      await _hive?.put("authToken", token);
+      if (data["refreshToken"] != null) {
+        await _hive?.put("refreshToken", data["refreshToken"].toString());
+      }
+      return token;
+    }
+    return null;
   }
 
   Future<Response<dynamic>> retryRequest(
@@ -62,8 +85,8 @@ class _InterceptorMethods with HTTPRequests {
     );
 
     return dioHandler.request(
-      options: options,
       requestOptions.path,
+      options: options,
       data: requestOptions.data,
       queryParameters: requestOptions.queryParameters,
     );
