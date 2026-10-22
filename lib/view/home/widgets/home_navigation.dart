@@ -7,57 +7,37 @@ class HomeNavigation {
 
   static const List<NavigationRailDestination> railDestinations = [
     NavigationRailDestination(
-      icon: Icon(Icons.dashboard_outlined),
-      selectedIcon: Icon(Icons.dashboard),
-      label: Text("Overview"),
+      icon: Icon(Icons.camera_alt_outlined),
+      selectedIcon: Icon(Icons.camera_alt),
+      label: Text("Punch In"),
     ),
     NavigationRailDestination(
-      icon: Icon(Icons.storefront_outlined),
-      selectedIcon: Icon(Icons.storefront),
-      label: Text("Branches"),
+      icon: Icon(Icons.history_outlined),
+      selectedIcon: Icon(Icons.history),
+      label: Text("History"),
     ),
     NavigationRailDestination(
-      icon: Icon(Icons.badge_outlined),
-      selectedIcon: Icon(Icons.badge),
-      label: Text("Directory"),
-    ),
-    NavigationRailDestination(
-      icon: Icon(Icons.how_to_reg_outlined),
-      selectedIcon: Icon(Icons.how_to_reg),
-      label: Text("Attendance"),
-    ),
-    NavigationRailDestination(
-      icon: Icon(Icons.shield_outlined),
-      selectedIcon: Icon(Icons.shield),
-      label: Text("Security"),
+      icon: Icon(Icons.person_outline),
+      selectedIcon: Icon(Icons.person),
+      label: Text("Profile"),
     ),
   ];
 
   static const List<BottomNavigationBarItem> bottomNavItems = [
     BottomNavigationBarItem(
-      icon: Icon(Icons.dashboard_outlined),
-      activeIcon: Icon(Icons.dashboard),
-      label: "Overview",
+      icon: Icon(Icons.camera_alt_outlined),
+      activeIcon: Icon(Icons.camera_alt),
+      label: "Punch In",
     ),
     BottomNavigationBarItem(
-      icon: Icon(Icons.storefront_outlined),
-      activeIcon: Icon(Icons.storefront),
-      label: "Branches",
+      icon: Icon(Icons.history_outlined),
+      activeIcon: Icon(Icons.history),
+      label: "History",
     ),
     BottomNavigationBarItem(
-      icon: Icon(Icons.badge_outlined),
-      activeIcon: Icon(Icons.badge),
-      label: "Directory",
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.how_to_reg_outlined),
-      activeIcon: Icon(Icons.how_to_reg),
-      label: "Attendance",
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.shield_outlined),
-      activeIcon: Icon(Icons.shield),
-      label: "Security",
+      icon: Icon(Icons.person_outline),
+      activeIcon: Icon(Icons.person),
+      label: "Profile",
     ),
   ];
 }

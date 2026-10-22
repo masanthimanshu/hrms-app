@@ -62,16 +62,20 @@ class MonochromeButton extends StatelessWidget {
           onTap: disabled ? null : onPressed,
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: padding ?? const EdgeInsets.symmetric(horizontal: 16),
+            padding: padding ?? const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: disabled ? null : (borderSide == BorderSide.none ? null : Border.fromBorderSide(borderSide)),
+              border: disabled
+                  ? null
+                  : (borderSide == BorderSide.none
+                      ? null
+                      : Border.fromBorderSide(borderSide)),
             ),
             child: Center(
               child: isLoading
                   ? SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(fgColor),
@@ -82,16 +86,20 @@ class MonochromeButton extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (icon != null) ...[
-                          Icon(icon, size: 18, color: fgColor),
-                          const SizedBox(width: 8),
+                          Icon(icon, size: 16, color: fgColor),
+                          const SizedBox(width: 6),
                         ],
-                        Text(
-                          text,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: disabled ? AppColors.zinc400 : fgColor,
-                            letterSpacing: -0.2,
+                        Flexible(
+                          child: Text(
+                            text,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: disabled ? AppColors.zinc400 : fgColor,
+                              letterSpacing: -0.2,
+                            ),
                           ),
                         ),
                       ],

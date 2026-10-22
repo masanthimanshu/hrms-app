@@ -1,13 +1,9 @@
 import "package:flutter/material.dart";
 
 import "/utils/colors.dart";
-import "sheets/create_store_sheet.dart";
-import "sheets/onboard_employee_sheet.dart";
 import "tabs/attendance_tab.dart";
-import "tabs/dashboard_tab.dart";
-import "tabs/employees_tab.dart";
-import "tabs/security_tab.dart";
-import "tabs/stores_tab.dart";
+import "tabs/history_tab.dart";
+import "tabs/profile_tab.dart";
 import "widgets/home_app_bar.dart";
 import "widgets/home_navigation.dart";
 
@@ -21,39 +17,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentTabIndex = 0;
 
-  void _openAddStoreSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => const CreateStoreSheet(),
-    );
-  }
-
-  void _openOnboardSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => const OnboardEmployeeSheet(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final List<Widget> tabs = [
-      DashboardTab(
-        onNavigateTab: (index) => setState(() => _currentTabIndex = index),
-        onOpenAddStore: _openAddStoreSheet,
-      ),
-      StoresTab(
-        onOpenAddStore: _openAddStoreSheet,
-      ),
-      EmployeesTab(
-        onOpenOnboard: _openOnboardSheet,
-      ),
       const AttendanceTab(),
-      const SecurityTab(),
+      HistoryTab(
+        onNavigateToPunch: () => setState(() => _currentTabIndex = 0),
+      ),
+      const ProfileTab(),
     ];
 
     return LayoutBuilder(
@@ -93,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 1040),
+                          constraints: const BoxConstraints(maxWidth: 600),
                           child: tabs[_currentTabIndex],
                         ),
                       ),
@@ -102,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               : Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600),
+                    constraints: const BoxConstraints(maxWidth: 540),
                     child: tabs[_currentTabIndex],
                   ),
                 ),

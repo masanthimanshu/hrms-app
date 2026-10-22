@@ -19,90 +19,69 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
     return AppBar(
       automaticallyImplyLeading: false,
-      titleSpacing: 20,
+      titleSpacing: 16,
       title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
               color: AppColors.zinc950,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: const Center(
               child: Text(
                 "H",
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w900,
                   color: AppColors.white,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           const Text(
             "HRMS",
             style: TextStyle(
-              fontSize: 17,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.3,
               color: AppColors.zinc950,
             ),
           ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.zinc200,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Text(
-              "ENTERPRISE",
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-                color: AppColors.zinc700,
-              ),
-            ),
-          ),
         ],
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: Center(
-            child: StatusPill(
-              label: healthState.status.isOnline ? "API Online" : "Connecting",
-              type: healthState.status.isOnline
-                  ? StatusPillType.active
-                  : StatusPillType.warning,
-            ),
+        Center(
+          child: StatusPill(
+            label: healthState.status.isOnline ? "Live" : "Offline",
+            type: healthState.status.isOnline
+                ? StatusPillType.active
+                : StatusPillType.warning,
           ),
         ),
         if (authState.currentUser != null) ...[
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Center(
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppColors.zinc200,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.zinc300, width: 1),
-                ),
-                child: Center(
-                  child: Text(
-                    authState.currentUser!.name.isNotEmpty
-                        ? authState.currentUser!.name[0].toUpperCase()
-                        : "U",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.zinc900,
-                    ),
+          const SizedBox(width: 8),
+          Center(
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: AppColors.zinc200,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.zinc300, width: 1),
+              ),
+              child: Center(
+                child: Text(
+                  authState.currentUser!.name.isNotEmpty
+                      ? authState.currentUser!.name[0].toUpperCase()
+                      : "U",
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.zinc900,
                   ),
                 ),
               ),
@@ -110,13 +89,15 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
           ),
         ],
         IconButton(
-          icon: const Icon(Icons.logout, size: 20, color: AppColors.zinc700),
+          icon: const Icon(Icons.logout, size: 18, color: AppColors.zinc700),
           tooltip: "Sign Out",
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(),
           onPressed: () {
             ref.read(authProvider.notifier).logout();
           },
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),

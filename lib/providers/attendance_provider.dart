@@ -10,6 +10,7 @@ class AttendanceState {
   final String currentLatitude;
   final String currentLongitude;
   final bool isWithinGeofence;
+  final String? capturedPhotoPath;
 
   const AttendanceState({
     required this.records,
@@ -18,6 +19,7 @@ class AttendanceState {
     this.currentLatitude = "37.7892",
     this.currentLongitude = "-122.3982",
     this.isWithinGeofence = true,
+    this.capturedPhotoPath,
   });
 
   factory AttendanceState.initial() {
@@ -45,6 +47,8 @@ class AttendanceState {
     String? currentLatitude,
     String? currentLongitude,
     bool? isWithinGeofence,
+    String? capturedPhotoPath,
+    bool clearPhoto = false,
   }) {
     return AttendanceState(
       records: records ?? this.records,
@@ -53,6 +57,7 @@ class AttendanceState {
       currentLatitude: currentLatitude ?? this.currentLatitude,
       currentLongitude: currentLongitude ?? this.currentLongitude,
       isWithinGeofence: isWithinGeofence ?? this.isWithinGeofence,
+      capturedPhotoPath: clearPhoto ? null : (capturedPhotoPath ?? this.capturedPhotoPath),
     );
   }
 }
@@ -71,11 +76,15 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     state = state.copyWith(records: list);
   }
 
-  void updateMockCoordinates(String lat, String lng) {
+  void setCapturedPhoto(String? path) {
     state = state.copyWith(
-      currentLatitude: lat,
-      currentLongitude: lng,
+      capturedPhotoPath: path,
+      clearPhoto: path == null,
     );
+  }
+
+  void clearCapturedPhoto() {
+    state = state.copyWith(clearPhoto: true);
   }
 
   Future<bool> checkIn({
@@ -85,10 +94,11 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     String? storeName,
     String? targetLat,
     String? targetLng,
+    String? photoPath,
   }) async {
     state = state.copyWith(isSubmitting: true, message: null);
 
-    // Calculate geofence distance if target coordinates are available
+    // Verify distance to store geofence
     bool verified = true;
     if (targetLat != null && targetLng != null) {
       final double? tLat = double.tryParse(targetLat);
@@ -103,14 +113,11 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
           tLat,
           tLng,
         );
-        // Verify within 1,000 meters (1 km)
         verified = distMeters <= 1000;
       }
     }
 
-    // Simulate S3 presigned upload & verification
-    await Future.delayed(const Duration(milliseconds: 600));
-
+    // Persist check-in record
     final record = await _service.recordAttendance(
       userId: userId,
       userName: userName,
@@ -118,6 +125,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       storeName: storeName,
       latitude: state.currentLatitude,
       longitude: state.currentLongitude,
+      imageUrl: photoPath ?? state.capturedPhotoPath,
       isVerified: verified,
     );
 
@@ -127,9 +135,10 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       records: updated,
       isSubmitting: false,
       isWithinGeofence: verified,
+      clearPhoto: true,
       message: verified
-          ? "Attendance verified & logged successfully"
-          : "Attendance logged with warning: Location outside store geofence",
+          ? "Attendance verified & logged successfully with selfie proof!"
+          : "Attendance logged (warning: outside branch geofence)",
     );
 
     return true;
