@@ -59,38 +59,6 @@ class AuthService with HTTPRequests {
     return ApiResponse.error(errorMessage);
   }
 
-  /// Register employee via POST /account/auth/create
-  Future<ApiResponse<Map<String, dynamic>>> register({
-    required String name,
-    required String email,
-    required String storeId,
-    required String password,
-  }) async {
-    final payload = {
-      "name": name.trim(),
-      "email": email.trim(),
-      "storeId": storeId.trim(),
-      "password": password.trim(),
-    };
-
-    final res = await postRequest(
-      url: apiEndpoint(ApiEndpoints.authCreate),
-      payload: payload,
-    );
-
-    if (res != null &&
-        (res["status"] == "User created successfully" ||
-            res["status"] == "Success" ||
-            res["message"] == "User created successfully")) {
-      return ApiResponse.success(res, message: "User registered successfully");
-    }
-
-    final errorMessage = res?["message"]?.toString() ??
-        res?["error"]?.toString() ??
-        "Unable to register user. Check inputs.";
-    return ApiResponse.error(errorMessage);
-  }
-
   /// Verify session validity via GET /secure/verify
   Future<bool> verifyToken() async {
     try {

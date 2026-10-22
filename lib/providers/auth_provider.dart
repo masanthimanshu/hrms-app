@@ -71,7 +71,9 @@ class AuthNotifier extends Notifier<AuthState> {
       return;
     }
 
-    final isValid = await _authService.verifyToken();
+    final isValid = await _authService.verifyToken() ||
+        (await _authService.refreshToken()).isSuccess;
+
     if (isValid) {
       state = state.copyWith(
         isAuthenticated: true,
@@ -81,23 +83,11 @@ class AuthNotifier extends Notifier<AuthState> {
         currentUser: _authService.getCurrentUser(),
       );
     } else {
-      // Try refresh
-      final refreshRes = await _authService.refreshToken();
-      if (refreshRes.isSuccess) {
-        state = state.copyWith(
-          isAuthenticated: true,
-          isLoading: false,
-          authToken: _authService.currentAuthToken,
-          refreshToken: _authService.currentRefreshToken,
-          currentUser: _authService.getCurrentUser(),
-        );
-      } else {
-        await _authService.logout();
-        state = state.copyWith(
-          isAuthenticated: false,
-          isLoading: false,
-        );
-      }
+      await _authService.logout();
+      state = state.copyWith(
+        isAuthenticated: false,
+        isLoading: false,
+      );
     }
   }
 
@@ -121,36 +111,6 @@ class AuthNotifier extends Notifier<AuthState> {
         isAuthenticated: false,
         isLoading: false,
         errorMessage: res.message ?? "Authentication failed",
-      );
-      return false;
-    }
-  }
-
-  Future<bool> register({
-    required String name,
-    required String email,
-    required String storeId,
-    required String password,
-  }) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-
-    final res = await _authService.register(
-      name: name,
-      email: email,
-      storeId: storeId,
-      password: password,
-    );
-
-    if (res.isSuccess) {
-      state = state.copyWith(
-        isLoading: false,
-        successMessage: "Account created successfully. Please sign in.",
-      );
-      return true;
-    } else {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: res.message ?? "Registration failed",
       );
       return false;
     }

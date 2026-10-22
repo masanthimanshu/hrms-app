@@ -37,6 +37,21 @@ class AppFormatters {
     }
   }
 
+  /// Format time only (e.g. 09:14 AM)
+  static String formatTime(dynamic date) {
+    if (date == null) return "--:--";
+    try {
+      final DateTime dt = date is DateTime ? date : DateTime.parse(date.toString());
+      final int hour = dt.hour;
+      final int displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      final String period = hour >= 12 ? "PM" : "AM";
+      final String minute = dt.minute.toString().padLeft(2, "0");
+      return "${displayHour.toString().padLeft(2, '0')}:$minute $period";
+    } catch (_) {
+      return "--:--";
+    }
+  }
+
   /// Format coordinates (e.g. 37.7892, -122.3982)
   static String formatCoordinates(String? lat, String? lng) {
     if (lat == null || lng == null || lat.isEmpty || lng.isEmpty) {

@@ -7,17 +7,11 @@ class StoreState {
   final List<StoreModel> stores;
   final bool isLoading;
   final String? errorMessage;
-  final String? successMessage;
-  final String searchQuery;
-  final StoreModel? selectedStore;
 
   const StoreState({
     required this.stores,
     this.isLoading = false,
     this.errorMessage,
-    this.successMessage,
-    this.searchQuery = "",
-    this.selectedStore,
   });
 
   factory StoreState.initial() {
@@ -27,31 +21,15 @@ class StoreState {
     );
   }
 
-  List<StoreModel> get filteredStores {
-    if (searchQuery.trim().isEmpty) return stores;
-    final query = searchQuery.toLowerCase().trim();
-    return stores.where((s) {
-      return s.name.toLowerCase().contains(query) ||
-          s.address.toLowerCase().contains(query);
-    }).toList();
-  }
-
   StoreState copyWith({
     List<StoreModel>? stores,
     bool? isLoading,
     String? errorMessage,
-    String? successMessage,
-    String? searchQuery,
-    StoreModel? selectedStore,
-    bool clearSelected = false,
   }) {
     return StoreState(
       stores: stores ?? this.stores,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
-      successMessage: successMessage,
-      searchQuery: searchQuery ?? this.searchQuery,
-      selectedStore: clearSelected ? null : (selectedStore ?? this.selectedStore),
     );
   }
 }
@@ -81,52 +59,6 @@ class StoreNotifier extends Notifier<StoreState> {
         errorMessage: res.message ?? "Could not load store catalog",
       );
     }
-  }
-
-  Future<bool> createStore({
-    required String name,
-    required String address,
-    required String latitude,
-    required String longitude,
-  }) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-
-    final res = await _service.createStore(
-      name: name,
-      address: address,
-      latitude: latitude,
-      longitude: longitude,
-    );
-
-    if (res.isSuccess) {
-      state = state.copyWith(
-        isLoading: false,
-        successMessage: "Branch '$name' created successfully",
-      );
-      await loadStores();
-      return true;
-    } else {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: res.message ?? "Failed to create store",
-      );
-      return false;
-    }
-  }
-
-  void setSearchQuery(String query) {
-    state = state.copyWith(searchQuery: query);
-  }
-
-  void selectStore(StoreModel? store) {
-    state = state.copyWith(
-      selectedStore: store,
-      clearSelected: store == null,
-    );
-  }
-
-  void clearMessages() {
-    state = state.copyWith(errorMessage: null, successMessage: null);
   }
 }
 
