@@ -1,5 +1,6 @@
 import "dart:convert";
 import "dart:math";
+
 import "package:hive_flutter/hive_flutter.dart";
 
 import "/models/attendance_model.dart";
@@ -66,7 +67,9 @@ class AttendanceService {
       storeName: storeName ?? "Primary Facility",
       latitude: latitude,
       longitude: longitude,
-      imageUrl: imageUrl ?? "s3://hrms-assets/proofs/${DateTime.now().millisecondsSinceEpoch}.jpg",
+      imageUrl:
+          imageUrl ??
+          "s3://hrms-assets/proofs/${DateTime.now().millisecondsSinceEpoch}.jpg",
       timestamp: DateTime.now(),
       isVerified: isVerified,
     );
@@ -88,7 +91,8 @@ class AttendanceService {
     double lon2,
   ) {
     const p = 0.017453292519943295; // Math.PI / 180
-    final a = 0.5 -
+    final a =
+        0.5 -
         cos((lat2 - lat1) * p) / 2 +
         cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2;
     return 12742000 * asin(sqrt(a)); // 2 * R * 1000 meters

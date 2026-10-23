@@ -48,9 +48,7 @@ final ThemeData appTheme = ThemeData(
       foregroundColor: AppColors.white,
       elevation: 0,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       textStyle: GoogleFonts.plusJakartaSans(
         fontSize: 14,
         fontWeight: FontWeight.w600,
@@ -65,9 +63,7 @@ final ThemeData appTheme = ThemeData(
       elevation: 0,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       side: const BorderSide(color: AppColors.zinc300, width: 1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       textStyle: GoogleFonts.plusJakartaSans(
         fontSize: 14,
         fontWeight: FontWeight.w600,
@@ -131,9 +127,7 @@ final ThemeData appTheme = ThemeData(
       fontSize: 13,
       fontWeight: FontWeight.w500,
     ),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     behavior: SnackBarBehavior.floating,
   ),
 );

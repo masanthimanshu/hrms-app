@@ -44,10 +44,7 @@ mixin HTTPRequests {
   }) async {
     debugPrint("[GET] $url");
     try {
-      final res = await _dioHandler.get(
-        url,
-        queryParameters: queryParameters,
-      );
+      final res = await _dioHandler.get(url, queryParameters: queryParameters);
       if (res.statusCode != null &&
           res.statusCode! >= 200 &&
           res.statusCode! <= 208) {
@@ -62,7 +59,9 @@ mixin HTTPRequests {
         return null;
       }
     } on DioException catch (e) {
-      debugPrint("Dio GET error: ${e.response?.statusCode} - ${e.response?.data}");
+      debugPrint(
+        "Dio GET error: ${e.response?.statusCode} - ${e.response?.data}",
+      );
       if (e.response?.data is Map<String, dynamic>) {
         return e.response!.data as Map<String, dynamic>;
       }
@@ -93,7 +92,9 @@ mixin HTTPRequests {
         return null;
       }
     } on DioException catch (e) {
-      debugPrint("Dio POST error: ${e.response?.statusCode} - ${e.response?.data}");
+      debugPrint(
+        "Dio POST error: ${e.response?.statusCode} - ${e.response?.data}",
+      );
       if (e.response?.data is Map<String, dynamic>) {
         return e.response!.data as Map<String, dynamic>;
       }

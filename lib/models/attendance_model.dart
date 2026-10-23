@@ -36,9 +36,12 @@ class AttendanceModel {
       timestamp: json["timestamp"] != null
           ? DateTime.tryParse(json["timestamp"].toString()) ?? DateTime.now()
           : (json["createdAt"] != null
-              ? DateTime.tryParse(json["createdAt"].toString()) ?? DateTime.now()
-              : DateTime.now()),
-      isVerified: json["isVerified"] == null ? true : (json["isVerified"] == true),
+                ? DateTime.tryParse(json["createdAt"].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
+      isVerified: json["isVerified"] == null
+          ? true
+          : (json["isVerified"] == true),
     );
   }
 

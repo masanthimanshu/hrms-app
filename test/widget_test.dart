@@ -6,7 +6,9 @@ import "package:hrms/widgets/stat_card.dart";
 import "package:hrms/widgets/status_pill.dart";
 
 void main() {
-  testWidgets("Monochrome design components render correctly", (WidgetTester tester) async {
+  testWidgets("Monochrome design components render correctly", (
+    WidgetTester tester,
+  ) async {
     bool buttonTapped = false;
 
     await tester.pumpWidget(
@@ -22,9 +24,7 @@ void main() {
                 label: "Live Active",
                 type: StatusPillType.active,
               ),
-              const MonochromeCard(
-                child: Text("Card Content"),
-              ),
+              const MonochromeCard(child: Text("Card Content")),
               const StatCard(
                 title: "Branches",
                 value: "12",

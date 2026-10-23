@@ -57,9 +57,7 @@ class HomeBottomBar extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.white,
-        border: Border(
-          top: BorderSide(color: AppColors.zinc200, width: 1),
-        ),
+        border: Border(top: BorderSide(color: AppColors.zinc200, width: 1)),
       ),
       child: BottomNavigationBar(
         currentIndex: currentIndex,

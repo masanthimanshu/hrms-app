@@ -34,10 +34,7 @@ class AuthService with HTTPRequests {
     required String email,
     required String password,
   }) async {
-    final payload = {
-      "email": email.trim(),
-      "password": password.trim(),
-    };
+    final payload = {"email": email.trim(), "password": password.trim()};
 
     final res = await postRequest(
       url: apiEndpoint(ApiEndpoints.authLogin),
@@ -53,7 +50,8 @@ class AuthService with HTTPRequests {
       return ApiResponse.success(res, message: "Authentication successful");
     }
 
-    final errorMessage = res?["message"]?.toString() ??
+    final errorMessage =
+        res?["message"]?.toString() ??
         res?["error"]?.toString() ??
         "Invalid email or password";
     return ApiResponse.error(errorMessage);
@@ -80,7 +78,9 @@ class AuthService with HTTPRequests {
       }
       return ApiResponse.success(res, message: "Tokens refreshed successfully");
     }
-    return ApiResponse.error(res?["message"]?.toString() ?? "Failed to refresh token");
+    return ApiResponse.error(
+      res?["message"]?.toString() ?? "Failed to refresh token",
+    );
   }
 
   /// Sign out and clear stored session tokens
@@ -98,7 +98,9 @@ class AuthService with HTTPRequests {
     if (email == null || email.isEmpty) return null;
     return UserModel(
       id: _box?.get("userId")?.toString() ?? "u-${email.hashCode.abs()}",
-      name: currentUserName ?? email.split("@").first.replaceAll(".", " ").toUpperCase(),
+      name:
+          currentUserName ??
+          email.split("@").first.replaceAll(".", " ").toUpperCase(),
       email: email,
       storeId: currentStoreId ?? "",
       isValid: true,

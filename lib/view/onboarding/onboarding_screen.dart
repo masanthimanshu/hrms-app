@@ -18,7 +18,9 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: "alex.vance@example.com");
+  final _emailController = TextEditingController(
+    text: "alex.vance@example.com",
+  );
   final _passwordController = TextEditingController(text: "Password123!");
   bool _obscurePassword = true;
 
@@ -31,10 +33,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
-      await ref.read(authProvider.notifier).login(
-            _emailController.text,
-            _passwordController.text,
-          );
+      await ref
+          .read(authProvider.notifier)
+          .login(_emailController.text, _passwordController.text);
     }
   }
 
@@ -214,7 +215,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         color: AppColors.zinc600,
                                       ),
                                       onPressed: () => setState(
-                                        () => _obscurePassword = !_obscurePassword,
+                                        () => _obscurePassword =
+                                            !_obscurePassword,
                                       ),
                                     ),
                                     validator: (v) {

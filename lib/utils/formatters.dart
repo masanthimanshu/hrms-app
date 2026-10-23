@@ -6,10 +6,22 @@ class AppFormatters {
   static String formatDate(dynamic date) {
     if (date == null) return "N/A";
     try {
-      final DateTime dt = date is DateTime ? date : DateTime.parse(date.toString());
+      final DateTime dt = date is DateTime
+          ? date
+          : DateTime.parse(date.toString());
       final List<String> months = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
       ];
       final String month = months[dt.month - 1];
       final String day = dt.day.toString().padLeft(2, "0");
@@ -26,10 +38,22 @@ class AppFormatters {
   static String formatShortDate(dynamic date) {
     if (date == null) return "N/A";
     try {
-      final DateTime dt = date is DateTime ? date : DateTime.parse(date.toString());
+      final DateTime dt = date is DateTime
+          ? date
+          : DateTime.parse(date.toString());
       final List<String> months = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
       ];
       return "${dt.day} ${months[dt.month - 1]} ${dt.year}";
     } catch (_) {
@@ -41,7 +65,9 @@ class AppFormatters {
   static String formatTime(dynamic date) {
     if (date == null) return "--:--";
     try {
-      final DateTime dt = date is DateTime ? date : DateTime.parse(date.toString());
+      final DateTime dt = date is DateTime
+          ? date
+          : DateTime.parse(date.toString());
       final int hour = dt.hour;
       final int displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
       final String period = hour >= 12 ? "PM" : "AM";

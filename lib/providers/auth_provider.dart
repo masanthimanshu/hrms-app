@@ -23,10 +23,7 @@ class AuthState {
   });
 
   factory AuthState.initial() {
-    return const AuthState(
-      isAuthenticated: false,
-      isLoading: false,
-    );
+    return const AuthState(isAuthenticated: false, isLoading: false);
   }
 
   AuthState copyWith({
@@ -64,14 +61,12 @@ class AuthNotifier extends Notifier<AuthState> {
     final hasToken = _authService.hasSavedToken;
 
     if (!hasToken) {
-      state = state.copyWith(
-        isAuthenticated: false,
-        isLoading: false,
-      );
+      state = state.copyWith(isAuthenticated: false, isLoading: false);
       return;
     }
 
-    final isValid = await _authService.verifyToken() ||
+    final isValid =
+        await _authService.verifyToken() ||
         (await _authService.refreshToken()).isSuccess;
 
     if (isValid) {
@@ -84,10 +79,7 @@ class AuthNotifier extends Notifier<AuthState> {
       );
     } else {
       await _authService.logout();
-      state = state.copyWith(
-        isAuthenticated: false,
-        isLoading: false,
-      );
+      state = state.copyWith(isAuthenticated: false, isLoading: false);
     }
   }
 
@@ -162,4 +154,6 @@ class AuthNotifier extends Notifier<AuthState> {
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
-final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);

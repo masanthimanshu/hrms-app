@@ -41,7 +41,10 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           "Sign Out",
-          style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.zinc950),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColors.zinc950,
+          ),
         ),
         content: const Text(
           "Are you sure you want to sign out of your employee account?",
@@ -115,7 +118,10 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.zinc900,
                         borderRadius: BorderRadius.circular(4),
@@ -205,7 +211,8 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            assignedStore?.name ?? "Headquarters - San Francisco",
+                            assignedStore?.name ??
+                                "Headquarters - San Francisco",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -250,7 +257,10 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                         color: AppColors.zinc950,
                       ),
                     ),
-                    StatusPill(label: "JWT Active", type: StatusPillType.active),
+                    StatusPill(
+                      label: "JWT Active",
+                      type: StatusPillType.active,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),

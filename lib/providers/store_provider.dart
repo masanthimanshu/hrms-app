@@ -15,10 +15,7 @@ class StoreState {
   });
 
   factory StoreState.initial() {
-    return const StoreState(
-      stores: [],
-      isLoading: false,
-    );
+    return const StoreState(stores: [], isLoading: false);
   }
 
   StoreState copyWith({
@@ -49,10 +46,7 @@ class StoreNotifier extends Notifier<StoreState> {
     final res = await _service.fetchStores();
 
     if (res.isSuccess && res.data != null) {
-      state = state.copyWith(
-        stores: res.data!,
-        isLoading: false,
-      );
+      state = state.copyWith(stores: res.data!, isLoading: false);
     } else {
       state = state.copyWith(
         isLoading: false,
@@ -64,4 +58,6 @@ class StoreNotifier extends Notifier<StoreState> {
 
 final storeServiceProvider = Provider<StoreService>((ref) => StoreService());
 
-final storeProvider = NotifierProvider<StoreNotifier, StoreState>(StoreNotifier.new);
+final storeProvider = NotifierProvider<StoreNotifier, StoreState>(
+  StoreNotifier.new,
+);

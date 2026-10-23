@@ -21,9 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final List<Widget> tabs = [
       const AttendanceTab(),
-      HistoryTab(
-        onNavigateToPunch: () => setState(() => _currentTabIndex = 0),
-      ),
+      HistoryTab(onNavigateToPunch: () => setState(() => _currentTabIndex = 0)),
       const ProfileTab(),
     ];
 
@@ -44,10 +42,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       backgroundColor: AppColors.white,
                       minWidth: 72,
                       labelType: NavigationRailLabelType.all,
-                      selectedIconTheme:
-                          const IconThemeData(color: AppColors.zinc950, size: 22),
-                      unselectedIconTheme:
-                          const IconThemeData(color: AppColors.zinc500, size: 22),
+                      selectedIconTheme: const IconThemeData(
+                        color: AppColors.zinc950,
+                        size: 22,
+                      ),
+                      unselectedIconTheme: const IconThemeData(
+                        color: AppColors.zinc500,
+                        size: 22,
+                      ),
                       selectedLabelTextStyle: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -60,7 +62,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       destinations: HomeNavigation.railDestinations,
                     ),
-                    const VerticalDivider(width: 1, thickness: 1, color: AppColors.zinc200),
+                    const VerticalDivider(
+                      width: 1,
+                      thickness: 1,
+                      color: AppColors.zinc200,
+                    ),
                     Expanded(
                       child: Center(
                         child: ConstrainedBox(

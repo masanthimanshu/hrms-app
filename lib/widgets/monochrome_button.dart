@@ -68,8 +68,8 @@ class MonochromeButton extends StatelessWidget {
               border: disabled
                   ? null
                   : (borderSide == BorderSide.none
-                      ? null
-                      : Border.fromBorderSide(borderSide)),
+                        ? null
+                        : Border.fromBorderSide(borderSide)),
             ),
             child: Center(
               child: isLoading

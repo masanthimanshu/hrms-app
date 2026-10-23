@@ -9,10 +9,7 @@ import "/widgets/status_pill.dart";
 class AttendanceLogTile extends StatelessWidget {
   final AttendanceModel record;
 
-  const AttendanceLogTile({
-    super.key,
-    required this.record,
-  });
+  const AttendanceLogTile({super.key, required this.record});
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +54,9 @@ class AttendanceLogTile extends StatelessWidget {
                     ),
                     StatusPill(
                       label: record.isVerified ? "Verified" : "Warning",
-                      type: record.isVerified ? StatusPillType.active : StatusPillType.warning,
+                      type: record.isVerified
+                          ? StatusPillType.active
+                          : StatusPillType.warning,
                     ),
                   ],
                 ),
@@ -74,7 +73,10 @@ class AttendanceLogTile extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.zinc100,
                         borderRadius: BorderRadius.circular(4),
@@ -92,14 +94,21 @@ class AttendanceLogTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.zinc100,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.shield_outlined, size: 10, color: AppColors.zinc700),
+                          Icon(
+                            Icons.shield_outlined,
+                            size: 10,
+                            color: AppColors.zinc700,
+                          ),
                           SizedBox(width: 3),
                           Text(
                             "Selfie Proof",

@@ -50,7 +50,9 @@ class HealthService with HTTPRequests {
       isOnline: isOnline,
       isJwtOnline: isJwtOnline,
       appMessage: appRes?["message"]?.toString() ?? "Offline",
-      jwtMessage: jwtRes?["message"]?.toString() ?? (isJwtOnline ? "Active" : "Unavailable"),
+      jwtMessage:
+          jwtRes?["message"]?.toString() ??
+          (isJwtOnline ? "Active" : "Unavailable"),
       latencyMs: stopwatch.elapsedMilliseconds,
       lastChecked: DateTime.now(),
     );

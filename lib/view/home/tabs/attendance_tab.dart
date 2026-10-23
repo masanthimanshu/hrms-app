@@ -1,5 +1,6 @@
 import "dart:async";
 import "dart:io";
+
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -65,9 +66,8 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Camera access error: $e")),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Camera access error: $e")));
       }
     }
   }
@@ -79,18 +79,26 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
     ref.read(attendanceProvider.notifier).clearCapturedPhoto();
   }
 
-  void _punchAttendance(StoreModel? assignedStore, String? userId, String? userName) async {
+  void _punchAttendance(
+    StoreModel? assignedStore,
+    String? userId,
+    String? userName,
+  ) async {
     if (_localPhotoPath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Live selfie photo required. Please tap 'Open Camera'."),
+          content: Text(
+            "Live selfie photo required. Please tap 'Open Camera'.",
+          ),
           duration: Duration(seconds: 2),
         ),
       );
       return;
     }
 
-    final success = await ref.read(attendanceProvider.notifier).checkIn(
+    final success = await ref
+        .read(attendanceProvider.notifier)
+        .checkIn(
           userId: userId ?? "emp-user",
           userName: userName,
           storeId: assignedStore?.id,
@@ -203,7 +211,11 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.person_outline, size: 14, color: AppColors.zinc400),
+                    const Icon(
+                      Icons.person_outline,
+                      size: 14,
+                      color: AppColors.zinc400,
+                    ),
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
@@ -386,8 +398,14 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                             height: 16,
                             decoration: const BoxDecoration(
                               border: Border(
-                                top: BorderSide(color: AppColors.white, width: 2),
-                                left: BorderSide(color: AppColors.white, width: 2),
+                                top: BorderSide(
+                                  color: AppColors.white,
+                                  width: 2,
+                                ),
+                                left: BorderSide(
+                                  color: AppColors.white,
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
@@ -400,8 +418,14 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                             height: 16,
                             decoration: const BoxDecoration(
                               border: Border(
-                                top: BorderSide(color: AppColors.white, width: 2),
-                                right: BorderSide(color: AppColors.white, width: 2),
+                                top: BorderSide(
+                                  color: AppColors.white,
+                                  width: 2,
+                                ),
+                                right: BorderSide(
+                                  color: AppColors.white,
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
@@ -414,8 +438,14 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                             height: 16,
                             decoration: const BoxDecoration(
                               border: Border(
-                                bottom: BorderSide(color: AppColors.white, width: 2),
-                                left: BorderSide(color: AppColors.white, width: 2),
+                                bottom: BorderSide(
+                                  color: AppColors.white,
+                                  width: 2,
+                                ),
+                                left: BorderSide(
+                                  color: AppColors.white,
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
@@ -428,8 +458,14 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                             height: 16,
                             decoration: const BoxDecoration(
                               border: Border(
-                                bottom: BorderSide(color: AppColors.white, width: 2),
-                                right: BorderSide(color: AppColors.white, width: 2),
+                                bottom: BorderSide(
+                                  color: AppColors.white,
+                                  width: 2,
+                                ),
+                                right: BorderSide(
+                                  color: AppColors.white,
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
@@ -445,7 +481,9 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                   children: [
                     Expanded(
                       child: MonochromeButton(
-                        text: _localPhotoPath == null ? "Open Camera & Take Selfie" : "Retake Live Selfie",
+                        text: _localPhotoPath == null
+                            ? "Open Camera & Take Selfie"
+                            : "Retake Live Selfie",
                         icon: Icons.camera_alt,
                         onPressed: _capturePhoto,
                         height: 46,
@@ -454,7 +492,11 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                     if (_localPhotoPath != null) ...[
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.zinc700),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 20,
+                          color: AppColors.zinc700,
+                        ),
                         tooltip: "Clear Photo",
                         onPressed: _clearPhoto,
                       ),
@@ -465,10 +507,14 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.lock_outline, size: 12, color: AppColors.zinc500),
+                    Icon(
+                      Icons.lock_outline,
+                      size: 12,
+                      color: AppColors.zinc500,
+                    ),
                     SizedBox(width: 4),
                     Text(
-                      "Live camera required • Gallery uploads disabled for security",
+                      "Live camera required",
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
@@ -490,7 +536,8 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
             icon: Icons.check_circle_outline,
             isLoading: attendanceState.isSubmitting,
             height: 50,
-            onPressed: () => _punchAttendance(assignedStore, currentUser?.id, userName),
+            onPressed: () =>
+                _punchAttendance(assignedStore, currentUser?.id, userName),
           ),
           const SizedBox(height: 20),
 
@@ -544,7 +591,9 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                 ),
                 StatusPill(
                   label: hasCheckedIn ? "Logged" : "Pending",
-                  type: hasCheckedIn ? StatusPillType.active : StatusPillType.warning,
+                  type: hasCheckedIn
+                      ? StatusPillType.active
+                      : StatusPillType.warning,
                 ),
               ],
             ),

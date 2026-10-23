@@ -23,22 +23,22 @@ class AttendanceState {
   });
 
   factory AttendanceState.initial() {
-    return const AttendanceState(
-      records: [],
-      isSubmitting: false,
-    );
+    return const AttendanceState(records: [], isSubmitting: false);
   }
 
   bool get hasCheckedInToday {
     if (records.isEmpty) return false;
     final now = DateTime.now();
-    return records.any((r) =>
-        r.timestamp.year == now.year &&
-        r.timestamp.month == now.month &&
-        r.timestamp.day == now.day);
+    return records.any(
+      (r) =>
+          r.timestamp.year == now.year &&
+          r.timestamp.month == now.month &&
+          r.timestamp.day == now.day,
+    );
   }
 
-  AttendanceModel? get latestRecord => records.isNotEmpty ? records.first : null;
+  AttendanceModel? get latestRecord =>
+      records.isNotEmpty ? records.first : null;
 
   AttendanceState copyWith({
     List<AttendanceModel>? records,
@@ -57,7 +57,9 @@ class AttendanceState {
       currentLatitude: currentLatitude ?? this.currentLatitude,
       currentLongitude: currentLongitude ?? this.currentLongitude,
       isWithinGeofence: isWithinGeofence ?? this.isWithinGeofence,
-      capturedPhotoPath: clearPhoto ? null : (capturedPhotoPath ?? this.capturedPhotoPath),
+      capturedPhotoPath: clearPhoto
+          ? null
+          : (capturedPhotoPath ?? this.capturedPhotoPath),
     );
   }
 }
@@ -77,10 +79,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
   }
 
   void setCapturedPhoto(String? path) {
-    state = state.copyWith(
-      capturedPhotoPath: path,
-      clearPhoto: path == null,
-    );
+    state = state.copyWith(capturedPhotoPath: path, clearPhoto: path == null);
   }
 
   void clearCapturedPhoto() {
@@ -145,7 +144,11 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
   }
 }
 
-final attendanceServiceProvider = Provider<AttendanceService>((ref) => AttendanceService());
+final attendanceServiceProvider = Provider<AttendanceService>(
+  (ref) => AttendanceService(),
+);
 
 final attendanceProvider =
-    NotifierProvider<AttendanceNotifier, AttendanceState>(AttendanceNotifier.new);
+    NotifierProvider<AttendanceNotifier, AttendanceState>(
+      AttendanceNotifier.new,
+    );

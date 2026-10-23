@@ -35,13 +35,15 @@ class DioInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final res = err.response?.data;
     final code = err.response?.statusCode;
-    final isRefreshEndpoint =
-        err.requestOptions.path.contains(apiEndpoint(ApiEndpoints.refreshToken));
+    final isRefreshEndpoint = err.requestOptions.path.contains(
+      apiEndpoint(ApiEndpoints.refreshToken),
+    );
 
     if (code == 401 &&
         !isRefreshEndpoint &&
         res is Map &&
-        (res["message"] == "Invalid token" || res["message"] == "Token expired")) {
+        (res["message"] == "Invalid token" ||
+            res["message"] == "Token expired")) {
       try {
         final newAuthToken = await _InterceptorMethods().refreshToken();
         if (newAuthToken != null) {

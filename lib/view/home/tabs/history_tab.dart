@@ -11,10 +11,7 @@ import "/widgets/stat_card.dart";
 class HistoryTab extends ConsumerWidget {
   final VoidCallback onNavigateToPunch;
 
-  const HistoryTab({
-    super.key,
-    required this.onNavigateToPunch,
-  });
+  const HistoryTab({super.key, required this.onNavigateToPunch});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
