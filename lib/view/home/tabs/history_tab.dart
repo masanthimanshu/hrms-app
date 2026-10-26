@@ -18,76 +18,101 @@ class HistoryTab extends ConsumerWidget {
     final attendanceState = ref.watch(attendanceProvider);
     final records = attendanceState.records;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SectionHeader(
-            title: "Attendance History",
-            subtitle: "Personal punch-in timesheet & audit log",
-          ),
-          const SizedBox(height: 16),
+    final verifiedCount = records.where((r) => r.isVerified).length;
+    final verificationRate = records.isEmpty
+        ? "100%"
+        : "${((verifiedCount / records.length) * 100).round()}%";
 
-          // Monthly Summary Stats
-          Row(
-            children: [
-              Expanded(
-                child: StatCard(
-                  title: "Days Logged",
-                  value: "${records.length}",
-                  subtitle: "Recorded check-ins",
-                  icon: Icons.calendar_today_outlined,
+    return RefreshIndicator(
+      color: AppColors.zinc950,
+      backgroundColor: AppColors.white,
+      onRefresh: () => ref.read(attendanceProvider.notifier).loadRecords(),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SectionHeader(
+              title: "Attendance History",
+              subtitle: "Personal punch-in timesheet & audit log",
+            ),
+            const SizedBox(height: 16),
+
+            // Monthly Summary Stats
+            Row(
+              children: [
+                Expanded(
+                  child: StatCard(
+                    title: "Days Logged",
+                    value: "${records.length}",
+                    subtitle: "Recorded check-ins",
+                    icon: Icons.calendar_today_outlined,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: StatCard(
+                    title: "Verification",
+                    value: verificationRate,
+                    subtitle: "$verifiedCount of ${records.length} in range",
+                    icon: Icons.verified_outlined,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            SectionHeader(
+              title: "Check-In Logs",
+              subtitle: "Historical timestamps & photo verification proofs",
+              action: Text(
+                "${records.length} Logs",
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.zinc500,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: StatCard(
-                  title: "Verification",
-                  value: "100%",
-                  subtitle: "Geofence matched",
-                  icon: Icons.verified_outlined,
+            ),
+            const SizedBox(height: 12),
+
+            if (attendanceState.isLoading && records.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.zinc950,
+                    ),
+                  ),
                 ),
+              )
+            else if (records.isEmpty)
+              EmptyState(
+                icon: Icons.access_time_outlined,
+                title: "No attendance logs yet",
+                description: "Clock in using your camera to create your first attendance record.",
+                buttonText: "Go to Punch In",
+                onButtonPressed: onNavigateToPunch,
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: records.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final record = records[index];
+                  return AttendanceLogTile(record: record);
+                },
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          SectionHeader(
-            title: "Check-In Logs",
-            subtitle: "Historical timestamps & photo verification proofs",
-            action: Text(
-              "${records.length} Logs",
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.zinc500,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          if (records.isEmpty)
-            EmptyState(
-              icon: Icons.access_time_outlined,
-              title: "No attendance logs yet",
-              description: "Clock in using your camera to create your first attendance record.",
-              buttonText: "Go to Punch In",
-              onButtonPressed: onNavigateToPunch,
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: records.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final record = records[index];
-                return AttendanceLogTile(record: record);
-              },
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

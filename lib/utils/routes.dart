@@ -1,9 +1,10 @@
 import "package:flutter/material.dart";
 
 import "/handler/session_handler.dart";
-import "/view/view.dart";
+import "/view/home/home_screen.dart";
+import "/view/onboarding/onboarding_screen.dart";
+import "/view/splash/splash_screen.dart";
 
-/// Named route path constants
 class AppRoutes {
   AppRoutes._();
 
@@ -13,7 +14,6 @@ class AppRoutes {
   static const String splash = "/splash";
 }
 
-/// Central application route table
 final Map<String, WidgetBuilder> appRoutes = {
   AppRoutes.root: (context) => const SessionHandler(),
   AppRoutes.home: (context) => const HomeScreen(),

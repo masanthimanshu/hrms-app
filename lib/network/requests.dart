@@ -104,4 +104,42 @@ mixin HTTPRequests {
       return null;
     }
   }
+
+  @protected
+  Future<bool> uploadBinaryToUrl({
+    required String url,
+    required List<int> bytes,
+    String contentType = "image/webp",
+  }) async {
+    debugPrint("[PUT RAW S3] $url - bytes: ${bytes.length}");
+    try {
+      final s3Dio = Dio(
+        BaseOptions(
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
+      final res = await s3Dio.put(
+        url,
+        data: Stream.fromIterable([bytes]),
+        options: Options(
+          headers: {
+            "Content-Type": contentType,
+            "Content-Length": bytes.length,
+          },
+        ),
+      );
+      return res.statusCode != null &&
+          res.statusCode! >= 200 &&
+          res.statusCode! < 300;
+    } on DioException catch (e) {
+      debugPrint(
+        "Dio S3 upload error: ${e.response?.statusCode} - ${e.message}",
+      );
+      return false;
+    } catch (e) {
+      debugPrint("Error uploading to S3: $e");
+      return false;
+    }
+  }
 }

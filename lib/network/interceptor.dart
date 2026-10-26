@@ -1,5 +1,4 @@
 import "package:dio/dio.dart";
-import "package:flutter/material.dart";
 import "package:hive_flutter/hive_flutter.dart";
 
 import "endpoints.dart";
@@ -14,18 +13,18 @@ class DioInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final dynamic authToken = _hive?.get("authToken");
-    final dynamic refreshToken = _hive?.get("refreshToken");
-    final dynamic customAccount = _hive?.get("accountId");
+    final auth = _hive?.get("authToken")?.toString();
+    final refresh = _hive?.get("refreshToken")?.toString();
+    final account = _hive?.get("accountId")?.toString();
 
-    if (authToken != null && authToken.toString().isNotEmpty) {
-      options.headers["authorization"] = authToken.toString();
+    if (auth != null && auth.isNotEmpty) {
+      options.headers["authorization"] = auth;
     }
-    if (refreshToken != null && refreshToken.toString().isNotEmpty) {
-      options.headers["refresh"] = refreshToken.toString();
+    if (refresh != null && refresh.isNotEmpty) {
+      options.headers["refresh"] = refresh;
     }
-    if (customAccount != null && customAccount.toString().isNotEmpty) {
-      options.headers["account"] = customAccount.toString();
+    if (account != null && account.isNotEmpty) {
+      options.headers["account"] = account;
     }
 
     super.onRequest(options, handler);
@@ -33,30 +32,27 @@ class DioInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final res = err.response?.data;
-    final code = err.response?.statusCode;
-    final isRefreshEndpoint = err.requestOptions.path.contains(
+    final isRefresh = err.requestOptions.path.contains(
       apiEndpoint(ApiEndpoints.refreshToken),
     );
 
-    if (code == 401 &&
-        !isRefreshEndpoint &&
-        res is Map &&
-        (res["message"] == "Invalid token" ||
-            res["message"] == "Token expired")) {
+    if (err.response?.statusCode == 401 && !isRefresh) {
       try {
-        final newAuthToken = await _InterceptorMethods().refreshToken();
-        if (newAuthToken != null) {
-          err.requestOptions.headers["authorization"] = newAuthToken;
-          final response = await _InterceptorMethods().retryRequest(
-            err.requestOptions,
-            dioHandler,
+        final newToken = await _InterceptorMethods().refreshToken();
+        if (newToken != null) {
+          err.requestOptions.headers["authorization"] = newToken;
+          final response = await dioHandler.request(
+            err.requestOptions.path,
+            options: Options(
+              method: err.requestOptions.method,
+              headers: err.requestOptions.headers,
+            ),
+            data: err.requestOptions.data,
+            queryParameters: err.requestOptions.queryParameters,
           );
           return handler.resolve(response);
         }
-      } catch (e) {
-        debugPrint("Error occurred with Interceptor token refresh: $e");
-      }
+      } catch (_) {}
     }
 
     super.onError(err, handler);
@@ -65,32 +61,15 @@ class DioInterceptor extends Interceptor {
 
 class _InterceptorMethods with HTTPRequests {
   Future<String?> refreshToken() async {
-    final data = await getRequest(apiEndpoint(ApiEndpoints.refreshToken));
-    if (data != null && data["authToken"] != null) {
-      final token = data["authToken"].toString();
+    final res = await getRequest(apiEndpoint(ApiEndpoints.refreshToken));
+    final token = res?["authToken"]?.toString();
+    if (token != null) {
       await _hive?.put("authToken", token);
-      if (data["refreshToken"] != null) {
-        await _hive?.put("refreshToken", data["refreshToken"].toString());
+      if (res?["refreshToken"] != null) {
+        await _hive?.put("refreshToken", res!["refreshToken"].toString());
       }
       return token;
     }
     return null;
-  }
-
-  Future<Response<dynamic>> retryRequest(
-    RequestOptions requestOptions,
-    Dio dioHandler,
-  ) async {
-    final options = Options(
-      method: requestOptions.method,
-      headers: requestOptions.headers,
-    );
-
-    return dioHandler.request(
-      requestOptions.path,
-      options: options,
-      data: requestOptions.data,
-      queryParameters: requestOptions.queryParameters,
-    );
   }
 }

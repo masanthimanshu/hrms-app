@@ -6,6 +6,10 @@ enum ApiEndpoints {
   refreshToken,
   storeGet,
   authLogin,
+  authUsers,
+  uploadImage,
+  attendanceAdd,
+  attendanceAll,
 }
 
 String apiEndpoint(ApiEndpoints endpoint) {
@@ -24,5 +28,13 @@ String apiEndpoint(ApiEndpoints endpoint) {
       return "account/store/get";
     case ApiEndpoints.authLogin:
       return "account/auth/login";
+    case ApiEndpoints.authUsers:
+      return "account/auth/users";
+    case ApiEndpoints.uploadImage:
+      return "secure/upload/image";
+    case ApiEndpoints.attendanceAdd:
+      return "secure/attendance/add";
+    case ApiEndpoints.attendanceAll:
+      return "secure/attendance/all";
   }
 }

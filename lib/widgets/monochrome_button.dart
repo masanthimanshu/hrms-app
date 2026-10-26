@@ -28,29 +28,25 @@ class MonochromeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bgColor;
-    Color fgColor;
-    BorderSide borderSide;
+    final (bgColor, fgColor, border) = switch (variant) {
+      MonochromeButtonVariant.primary => (
+        AppColors.zinc950,
+        AppColors.white,
+        null,
+      ),
+      MonochromeButtonVariant.secondary => (
+        AppColors.white,
+        AppColors.zinc950,
+        Border.all(color: AppColors.zinc300, width: 1),
+      ),
+      MonochromeButtonVariant.ghost => (
+        AppColors.zinc100,
+        AppColors.zinc900,
+        Border.all(color: AppColors.zinc200, width: 1),
+      ),
+    };
 
-    switch (variant) {
-      case MonochromeButtonVariant.primary:
-        bgColor = AppColors.zinc950;
-        fgColor = AppColors.white;
-        borderSide = BorderSide.none;
-        break;
-      case MonochromeButtonVariant.secondary:
-        bgColor = AppColors.white;
-        fgColor = AppColors.zinc950;
-        borderSide = const BorderSide(color: AppColors.zinc300, width: 1);
-        break;
-      case MonochromeButtonVariant.ghost:
-        bgColor = AppColors.zinc100;
-        fgColor = AppColors.zinc900;
-        borderSide = const BorderSide(color: AppColors.zinc200, width: 1);
-        break;
-    }
-
-    final bool disabled = onPressed == null || isLoading;
+    final disabled = onPressed == null || isLoading;
 
     return SizedBox(
       width: width,
@@ -65,11 +61,7 @@ class MonochromeButton extends StatelessWidget {
             padding: padding ?? const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: disabled
-                  ? null
-                  : (borderSide == BorderSide.none
-                        ? null
-                        : Border.fromBorderSide(borderSide)),
+              border: disabled ? null : border,
             ),
             child: Center(
               child: isLoading

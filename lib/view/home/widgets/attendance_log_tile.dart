@@ -70,7 +70,9 @@ class AttendanceLogTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 5),
-                Row(
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -92,7 +94,40 @@ class AttendanceLogTile extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    if (record.distance != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.zinc100,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: AppColors.zinc200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.near_me_outlined,
+                              size: 10,
+                              color: AppColors.zinc700,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              "${record.distance}m",
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.zinc700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -103,6 +138,7 @@ class AttendanceLogTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.shield_outlined,

@@ -10,6 +10,7 @@ import "/models/store_model.dart";
 import "/providers/attendance_provider.dart";
 import "/providers/auth_provider.dart";
 import "/providers/store_provider.dart";
+import "/services/attendance_service.dart";
 import "/utils/colors.dart";
 import "/utils/formatters.dart";
 import "/widgets/monochrome_button.dart";
@@ -101,21 +102,34 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
         .checkIn(
           userId: userId ?? "emp-user",
           userName: userName,
-          storeId: assignedStore?.id,
           storeName: assignedStore?.name,
-          targetLat: assignedStore?.latitude,
-          targetLng: assignedStore?.longitude,
           photoPath: _localPhotoPath,
         );
 
-    if (success && mounted) {
+    if (!mounted) return;
+
+    if (success) {
       setState(() {
         _localPhotoPath = null;
       });
+      final msg =
+          ref.read(attendanceProvider).message ??
+          "Attendance successfully verified and recorded!";
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Attendance successfully verified and recorded!"),
+        SnackBar(
+          content: Text(msg),
           backgroundColor: AppColors.zinc950,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      final err =
+          ref.read(attendanceProvider).errorMessage ??
+          "Failed to record attendance. Please try again.";
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err),
+          backgroundColor: AppColors.statusErrorDot,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -147,6 +161,25 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
     final period = hour >= 12 ? "PM" : "AM";
     final timeStr =
         "${displayHour.toString().padLeft(2, '0')}:${_currentTime.minute.toString().padLeft(2, '0')}:${_currentTime.second.toString().padLeft(2, '0')} $period";
+
+    double? liveDistanceMeters;
+    if (assignedStore?.latitude != null && assignedStore?.longitude != null) {
+      final sLat = double.tryParse(assignedStore!.latitude);
+      final sLng = double.tryParse(assignedStore.longitude);
+      final cLat = double.tryParse(attendanceState.currentLatitude);
+      final cLng = double.tryParse(attendanceState.currentLongitude);
+      if (sLat != null && sLng != null && cLat != null && cLng != null) {
+        liveDistanceMeters = AttendanceService.calculateDistanceMeters(
+          cLat,
+          cLng,
+          sLat,
+          sLng,
+        );
+      }
+    }
+
+    final isWithinRange =
+        liveDistanceMeters == null || liveDistanceMeters <= 1000;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -263,7 +296,9 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        "GPS: ${attendanceState.currentLatitude}, ${attendanceState.currentLongitude} • In Geofence",
+                        liveDistanceMeters != null
+                            ? "GPS: ${attendanceState.currentLatitude}, ${attendanceState.currentLongitude} • ${liveDistanceMeters.round()}m from facility"
+                            : "GPS: ${attendanceState.currentLatitude}, ${attendanceState.currentLongitude} • In Geofence",
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -275,9 +310,15 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                     ],
                   ),
                 ),
-                const StatusPill(
-                  label: "In Range",
-                  type: StatusPillType.active,
+                StatusPill(
+                  label: liveDistanceMeters != null
+                      ? (isWithinRange
+                            ? "In Range (${liveDistanceMeters.round()}m)"
+                            : "Far (${liveDistanceMeters.round()}m)")
+                      : "In Range",
+                  type: isWithinRange
+                      ? StatusPillType.active
+                      : StatusPillType.warning,
                   showDot: true,
                 ),
               ],

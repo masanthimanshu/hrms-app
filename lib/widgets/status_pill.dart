@@ -18,44 +18,35 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color dotColor;
-    Color bgColor;
-    Color textColor;
-    BorderSide border;
-
-    switch (type) {
-      case StatusPillType.active:
-        dotColor = AppColors.statusActiveDot;
-        bgColor = AppColors.zinc100;
-        textColor = AppColors.zinc950;
-        border = const BorderSide(color: AppColors.zinc300, width: 1);
-        break;
-      case StatusPillType.inactive:
-        dotColor = AppColors.statusErrorDot;
-        bgColor = AppColors.zinc100;
-        textColor = AppColors.zinc700;
-        border = const BorderSide(color: AppColors.zinc200, width: 1);
-        break;
-      case StatusPillType.warning:
-        dotColor = AppColors.statusWarningDot;
-        bgColor = AppColors.zinc100;
-        textColor = AppColors.zinc800;
-        border = const BorderSide(color: AppColors.zinc300, width: 1);
-        break;
-      case StatusPillType.neutral:
-        dotColor = AppColors.zinc500;
-        bgColor = AppColors.zinc100;
-        textColor = AppColors.zinc800;
-        border = const BorderSide(color: AppColors.zinc200, width: 1);
-        break;
-    }
+    final (dotColor, textColor, borderColor) = switch (type) {
+      StatusPillType.active => (
+        AppColors.statusActiveDot,
+        AppColors.zinc950,
+        AppColors.zinc300,
+      ),
+      StatusPillType.inactive => (
+        AppColors.statusErrorDot,
+        AppColors.zinc700,
+        AppColors.zinc200,
+      ),
+      StatusPillType.warning => (
+        AppColors.statusWarningDot,
+        AppColors.zinc800,
+        AppColors.zinc300,
+      ),
+      StatusPillType.neutral => (
+        AppColors.zinc500,
+        AppColors.zinc800,
+        AppColors.zinc200,
+      ),
+    };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: AppColors.zinc100,
         borderRadius: BorderRadius.circular(20),
-        border: Border.fromBorderSide(border),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

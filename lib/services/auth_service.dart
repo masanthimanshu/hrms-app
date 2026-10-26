@@ -1,3 +1,5 @@
+import "dart:convert";
+
 import "package:hive_flutter/hive_flutter.dart";
 
 import "/models/user_model.dart";
@@ -8,25 +10,14 @@ import "/network/requests.dart";
 class AuthService with HTTPRequests {
   Box? get _box => Hive.isBoxOpen("myBox") ? Hive.box("myBox") : null;
 
-  /// Check whether valid auth token exists in local storage
-  bool get hasSavedToken {
-    final token = _box?.get("authToken");
-    return token != null && token.toString().isNotEmpty;
-  }
+  bool get hasSavedToken =>
+      _box?.get("authToken")?.toString().isNotEmpty ?? false;
 
-  /// Get currently active auth token
   String? get currentAuthToken => _box?.get("authToken")?.toString();
-
-  /// Get currently active refresh token
   String? get currentRefreshToken => _box?.get("refreshToken")?.toString();
-
-  /// Get saved user email
   String? get currentEmail => _box?.get("userEmail")?.toString();
-
-  /// Get saved user name
   String? get currentUserName => _box?.get("userName")?.toString();
-
-  /// Get saved store ID
+  String? get currentUserId => _box?.get("userId")?.toString();
   String? get currentStoreId => _box?.get("userStoreId")?.toString();
 
   /// Authenticate employee via POST /account/auth/login
@@ -34,27 +25,76 @@ class AuthService with HTTPRequests {
     required String email,
     required String password,
   }) async {
-    final payload = {"email": email.trim(), "password": password.trim()};
-
     final res = await postRequest(
       url: apiEndpoint(ApiEndpoints.authLogin),
-      payload: payload,
+      payload: {"email": email.trim(), "password": password.trim()},
     );
 
-    if (res != null && res["status"] == "Success" && res["authToken"] != null) {
-      await _box?.put("authToken", res["authToken"].toString());
-      await _box?.put("refreshToken", res["refreshToken"].toString());
+    if (res != null && res["authToken"] != null) {
+      final token = res["authToken"].toString();
+      await _box?.put("authToken", token);
+      await _box?.put("refreshToken", res["refreshToken"]?.toString() ?? "");
       await _box?.put("userEmail", email.trim());
-      await _box?.put("loginTimestamp", DateTime.now().toIso8601String());
+
+      _extractJwtClaims(token);
+      await _resolveUserProfile(email.trim());
 
       return ApiResponse.success(res, message: "Authentication successful");
     }
 
-    final errorMessage =
-        res?["message"]?.toString() ??
-        res?["error"]?.toString() ??
-        "Invalid email or password";
-    return ApiResponse.error(errorMessage);
+    return ApiResponse.error(
+      res?["message"]?.toString() ?? "Invalid email or password",
+    );
+  }
+
+  void _extractJwtClaims(String token) {
+    try {
+      final parts = token.split(".");
+      if (parts.length == 3) {
+        final decoded = utf8.decode(
+          base64Url.decode(base64Url.normalize(parts[1])),
+        );
+        final data = jsonDecode(decoded);
+        if (data is Map) {
+          final id = data["_id"] ?? data["id"] ?? data["userId"];
+          if (id != null) {
+            _box?.put("userId", id.toString());
+          }
+          if (data["storeId"] != null) {
+            _box?.put("userStoreId", data["storeId"].toString());
+          }
+          if (data["name"] != null) {
+            _box?.put("userName", data["name"].toString());
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _resolveUserProfile(String email) async {
+    try {
+      final res = await getRequest(apiEndpoint(ApiEndpoints.authUsers));
+      final list = res?["data"];
+      if (list is List) {
+        final match = list.firstWhere(
+          (u) =>
+              u is Map &&
+              u["email"]?.toString().toLowerCase() == email.toLowerCase(),
+          orElse: () => null,
+        );
+        if (match is Map) {
+          if (match["_id"] != null) {
+            await _box?.put("userId", match["_id"].toString());
+          }
+          if (match["name"] != null) {
+            await _box?.put("userName", match["name"].toString());
+          }
+          if (match["storeId"] != null) {
+            await _box?.put("userStoreId", match["storeId"].toString());
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   /// Verify session validity via GET /secure/verify
@@ -62,7 +102,9 @@ class AuthService with HTTPRequests {
     try {
       final res = await getRequest(apiEndpoint(ApiEndpoints.verifyToken));
       return res != null &&
-          (res["message"] == "User is valid" || res["status"] == "Success");
+          (res["status"] == "Success" ||
+              res["valid"] == true ||
+              res["message"] == "User is valid");
     } catch (_) {
       return false;
     }
@@ -72,11 +114,13 @@ class AuthService with HTTPRequests {
   Future<ApiResponse<Map<String, dynamic>>> refreshToken() async {
     final res = await getRequest(apiEndpoint(ApiEndpoints.refreshToken));
     if (res != null && res["authToken"] != null) {
-      await _box?.put("authToken", res["authToken"].toString());
+      final token = res["authToken"].toString();
+      await _box?.put("authToken", token);
       if (res["refreshToken"] != null) {
         await _box?.put("refreshToken", res["refreshToken"].toString());
       }
-      return ApiResponse.success(res, message: "Tokens refreshed successfully");
+      _extractJwtClaims(token);
+      return ApiResponse.success(res);
     }
     return ApiResponse.error(
       res?["message"]?.toString() ?? "Failed to refresh token",
@@ -89,15 +133,16 @@ class AuthService with HTTPRequests {
     await _box?.delete("refreshToken");
     await _box?.delete("userEmail");
     await _box?.delete("userName");
+    await _box?.delete("userId");
     await _box?.delete("userStoreId");
   }
 
-  /// Retrieve current user info model
+  /// Retrieve current user model
   UserModel? getCurrentUser() {
     final email = currentEmail;
     if (email == null || email.isEmpty) return null;
     return UserModel(
-      id: _box?.get("userId")?.toString() ?? "u-${email.hashCode.abs()}",
+      id: currentUserId ?? "u-${email.hashCode.abs()}",
       name:
           currentUserName ??
           email.split("@").first.replaceAll(".", " ").toUpperCase(),

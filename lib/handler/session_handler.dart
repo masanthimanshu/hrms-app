@@ -2,7 +2,9 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "/providers/auth_provider.dart";
-import "/view/view.dart";
+import "/view/home/home_screen.dart";
+import "/view/onboarding/onboarding_screen.dart";
+import "/view/splash/splash_screen.dart";
 
 class SessionHandler extends ConsumerWidget {
   const SessionHandler({super.key});
