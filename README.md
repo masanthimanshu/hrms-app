@@ -57,7 +57,6 @@ lib/
 │   ├── routes.dart                # Central named routes table
 │   └── theme.dart                 # High-contrast monochrome ThemeData
 ├── view/
-│   ├── view.dart                  # Central barrel export
 │   ├── splash/
 │   │   └── splash_screen.dart     # Startup splash & session verification
 │   ├── onboarding/

@@ -16,20 +16,18 @@ class AppFormatters {
     "Dec",
   ];
 
-  static DateTime? _parse(dynamic date) {
-    if (date == null) return null;
-    return date is DateTime ? date : DateTime.tryParse(date.toString());
-  }
+  static DateTime? _parse(dynamic date) => date is DateTime
+      ? date
+      : (date != null ? DateTime.tryParse(date.toString()) : null);
 
-  /// Format ISO string or DateTime to "22 Oct 2026, 14:30"
+  /// Format date to "22 Oct 2026, 14:30"
   static String formatDate(dynamic date) {
     final dt = _parse(date);
     if (dt == null) return "N/A";
-    final m = _months[dt.month - 1];
     final d = dt.day.toString().padLeft(2, "0");
     final h = dt.hour.toString().padLeft(2, "0");
     final min = dt.minute.toString().padLeft(2, "0");
-    return "$d $m ${dt.year}, $h:$min";
+    return "$d ${_months[dt.month - 1]} ${dt.year}, $h:$min";
   }
 
   /// Format short date "22 Oct 2026"
@@ -39,7 +37,7 @@ class AppFormatters {
     return "${dt.day} ${_months[dt.month - 1]} ${dt.year}";
   }
 
-  /// Format time only "09:14 AM"
+  /// Format time "09:14 AM"
   static String formatTime(dynamic date) {
     final dt = _parse(date);
     if (dt == null) return "--:--";
@@ -50,14 +48,28 @@ class AppFormatters {
     return "${displayHour.toString().padLeft(2, '0')}:$minute $period";
   }
 
-  /// Truncate long token for UI display
+  /// Format coordinates (e.g. "28.5136, 77.3739")
+  static String formatCoordinates(
+    String? lat,
+    String? lng, {
+    int decimals = 4,
+  }) {
+    if (lat == null || lng == null || lat.isEmpty || lng.isEmpty) {
+      return "Unavailable";
+    }
+    final dLat = double.tryParse(lat)?.toStringAsFixed(decimals) ?? lat;
+    final dLng = double.tryParse(lng)?.toStringAsFixed(decimals) ?? lng;
+    return "$dLat, $dLng";
+  }
+
+  /// Truncate token for display
   static String maskToken(String? token, {int prefix = 8, int suffix = 8}) {
     if (token == null || token.isEmpty) return "None";
     if (token.length <= prefix + suffix + 3) return token;
     return "${token.substring(0, prefix)}...${token.substring(token.length - suffix)}";
   }
 
-  /// Get initials from name ("Alex Vance" -> "AV")
+  /// Get initials from name ("Himanshu Masant" -> "HM")
   static String getInitials(String? name) {
     if (name == null || name.trim().isEmpty) return "U";
     final parts = name.trim().split(RegExp(r"\s+"));

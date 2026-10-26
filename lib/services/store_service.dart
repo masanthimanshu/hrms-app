@@ -4,21 +4,15 @@ import "/network/endpoints.dart";
 import "/network/requests.dart";
 
 class StoreService with HTTPRequests {
-  /// Fetch registered store branches from GET /account/store/get
   Future<ApiResponse<List<StoreModel>>> fetchStores() async {
-    final res = await getRequest(apiEndpoint(ApiEndpoints.storeGet));
-
-    if (res != null) {
-      final dynamic rawList = res["data"] ?? res["stores"];
-      if (rawList is List) {
-        final List<StoreModel> stores = rawList
-            .map((item) => StoreModel.fromJson(Map<String, dynamic>.from(item)))
-            .toList();
-        return ApiResponse.success(stores);
-      }
-      return ApiResponse.success([]);
+    final res = await getRequest(Endpoints.storeGet);
+    final raw = res?["data"] ?? res?["stores"];
+    if (raw is List) {
+      final stores = raw
+          .map((e) => StoreModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      return ApiResponse.success(stores);
     }
-
-    return ApiResponse.error("Failed to load stores from server");
+    return ApiResponse.error("Failed to load stores");
   }
 }

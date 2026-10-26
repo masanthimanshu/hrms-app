@@ -17,10 +17,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final _emailController = TextEditingController(
-    text: "alex.vance@example.com",
-  );
-  final _passwordController = TextEditingController(text: "Password123!");
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
@@ -99,7 +97,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Error Message Banner
+                  // Error Banner
                   if (authState.errorMessage != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -137,7 +135,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                     ),
 
-                  // Login Card Container
+                  // Login Card
                   MonochromeCard(
                     padding: const EdgeInsets.all(20),
                     child: Column(
@@ -155,7 +153,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         MonochromeTextField(
                           controller: _emailController,
                           label: "Work Email",
-                          hintText: "employee@example.com",
+                          hintText: "name@company.com",
                           keyboardType: TextInputType.emailAddress,
                           prefixIcon: const Icon(
                             Icons.mail_outline,

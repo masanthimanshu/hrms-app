@@ -8,11 +8,35 @@ import "/widgets/status_pill.dart";
 
 class AttendanceLogTile extends StatelessWidget {
   final AttendanceModel record;
+  final String? fallbackStoreName;
 
-  const AttendanceLogTile({super.key, required this.record});
+  const AttendanceLogTile({
+    super.key,
+    required this.record,
+    this.fallbackStoreName,
+  });
+
+  Widget _tag(Widget child, {bool border = true}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.zinc100,
+        borderRadius: BorderRadius.circular(4),
+        border: border ? Border.all(color: AppColors.zinc200, width: 1) : null,
+      ),
+      child: child,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final displayStoreName =
+        (record.storeName != null && record.storeName!.isNotEmpty)
+        ? record.storeName!
+        : (fallbackStoreName != null && fallbackStoreName!.isNotEmpty)
+        ? fallbackStoreName!
+        : "Workplace Facility";
+
     return MonochromeCard(
       padding: const EdgeInsets.all(14),
       child: Row(
@@ -41,7 +65,7 @@ class AttendanceLogTile extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        record.storeName ?? "Headquarters - San Francisco",
+                        displayStoreName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -74,18 +98,12 @@ class AttendanceLogTile extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 4,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.zinc100,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: AppColors.zinc200, width: 1),
-                      ),
-                      child: Text(
-                        "${record.latitude}, ${record.longitude}",
+                    _tag(
+                      Text(
+                        AppFormatters.formatCoordinates(
+                          record.latitude,
+                          record.longitude,
+                        ),
                         style: const TextStyle(
                           fontSize: 10,
                           fontFamily: "monospace",
@@ -95,20 +113,8 @@ class AttendanceLogTile extends StatelessWidget {
                       ),
                     ),
                     if (record.distance != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.zinc100,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: AppColors.zinc200,
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
+                      _tag(
+                        Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
@@ -128,16 +134,8 @@ class AttendanceLogTile extends StatelessWidget {
                           ],
                         ),
                       ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.zinc100,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Row(
+                    _tag(
+                      const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
@@ -156,6 +154,7 @@ class AttendanceLogTile extends StatelessWidget {
                           ),
                         ],
                       ),
+                      border: false,
                     ),
                   ],
                 ),

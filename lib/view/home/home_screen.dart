@@ -20,7 +20,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> tabs = [
-      const AttendanceTab(),
+      AttendanceTab(
+        onNavigateToHistory: () => setState(() => _currentTabIndex = 1),
+      ),
       HistoryTab(onNavigateToPunch: () => setState(() => _currentTabIndex = 0)),
       const ProfileTab(),
     ];

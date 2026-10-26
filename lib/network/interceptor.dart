@@ -4,44 +4,35 @@ import "package:hive_flutter/hive_flutter.dart";
 import "endpoints.dart";
 import "requests.dart";
 
-Box? get _hive => Hive.isBoxOpen("myBox") ? Hive.box("myBox") : null;
-
 class DioInterceptor extends Interceptor {
-  const DioInterceptor({required this.dioHandler});
-
   final Dio dioHandler;
+  const DioInterceptor({required this.dioHandler});
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final auth = _hive?.get("authToken")?.toString();
-    final refresh = _hive?.get("refreshToken")?.toString();
-    final account = _hive?.get("accountId")?.toString();
-
-    if (auth != null && auth.isNotEmpty) {
-      options.headers["authorization"] = auth;
-    }
-    if (refresh != null && refresh.isNotEmpty) {
-      options.headers["refresh"] = refresh;
-    }
-    if (account != null && account.isNotEmpty) {
-      options.headers["account"] = account;
-    }
-
+    options.headers.addAll(HTTPRequests.getAuthHeaders());
     super.onRequest(options, handler);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final isRefresh = err.requestOptions.path.contains(
-      apiEndpoint(ApiEndpoints.refreshToken),
-    );
+    final isRefresh = err.requestOptions.path.contains(Endpoints.refreshToken);
 
     if (err.response?.statusCode == 401 && !isRefresh) {
       try {
-        final newToken = await _InterceptorMethods().refreshToken();
-        if (newToken != null) {
-          err.requestOptions.headers["authorization"] = newToken;
-          final response = await dioHandler.request(
+        final res = await dioHandler.get(Endpoints.refreshToken);
+        final token = res.data?["authToken"]?.toString();
+        if (token != null) {
+          final box = Hive.isBoxOpen("myBox") ? Hive.box("myBox") : null;
+          final refresh =
+              (res.data?["refreshToken"] ?? res.data?["refresh"] ?? token)
+                  .toString();
+          await box?.put("authToken", token);
+          await box?.put("refreshToken", refresh);
+          await box?.put("accountId", kDefaultAccountId);
+
+          err.requestOptions.headers.addAll(HTTPRequests.getAuthHeaders());
+          final retryResponse = await dioHandler.request(
             err.requestOptions.path,
             options: Options(
               method: err.requestOptions.method,
@@ -50,26 +41,11 @@ class DioInterceptor extends Interceptor {
             data: err.requestOptions.data,
             queryParameters: err.requestOptions.queryParameters,
           );
-          return handler.resolve(response);
+          return handler.resolve(retryResponse);
         }
       } catch (_) {}
     }
 
     super.onError(err, handler);
-  }
-}
-
-class _InterceptorMethods with HTTPRequests {
-  Future<String?> refreshToken() async {
-    final res = await getRequest(apiEndpoint(ApiEndpoints.refreshToken));
-    final token = res?["authToken"]?.toString();
-    if (token != null) {
-      await _hive?.put("authToken", token);
-      if (res?["refreshToken"] != null) {
-        await _hive?.put("refreshToken", res!["refreshToken"].toString());
-      }
-      return token;
-    }
-    return null;
   }
 }

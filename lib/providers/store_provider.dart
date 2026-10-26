@@ -9,14 +9,10 @@ class StoreState {
   final String? errorMessage;
 
   const StoreState({
-    required this.stores,
+    this.stores = const [],
     this.isLoading = false,
     this.errorMessage,
   });
-
-  factory StoreState.initial() {
-    return const StoreState(stores: [], isLoading: false);
-  }
 
   StoreState copyWith({
     List<StoreModel>? stores,
@@ -34,23 +30,21 @@ class StoreState {
 class StoreNotifier extends Notifier<StoreState> {
   @override
   StoreState build() {
-    Future.microtask(() => loadStores());
-    return StoreState.initial();
+    Future.microtask(loadStores);
+    return const StoreState();
   }
 
   StoreService get _service => ref.read(storeServiceProvider);
 
   Future<void> loadStores() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
-
     final res = await _service.fetchStores();
-
     if (res.isSuccess && res.data != null) {
       state = state.copyWith(stores: res.data!, isLoading: false);
     } else {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: res.message ?? "Could not load store catalog",
+        errorMessage: res.message ?? "Could not load stores",
       );
     }
   }

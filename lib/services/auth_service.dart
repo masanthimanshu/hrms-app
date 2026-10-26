@@ -12,7 +12,6 @@ class AuthService with HTTPRequests {
 
   bool get hasSavedToken =>
       _box?.get("authToken")?.toString().isNotEmpty ?? false;
-
   String? get currentAuthToken => _box?.get("authToken")?.toString();
   String? get currentRefreshToken => _box?.get("refreshToken")?.toString();
   String? get currentEmail => _box?.get("userEmail")?.toString();
@@ -20,30 +19,34 @@ class AuthService with HTTPRequests {
   String? get currentUserId => _box?.get("userId")?.toString();
   String? get currentStoreId => _box?.get("userStoreId")?.toString();
 
-  /// Authenticate employee via POST /account/auth/login
   Future<ApiResponse<Map<String, dynamic>>> login({
     required String email,
     required String password,
   }) async {
     final res = await postRequest(
-      url: apiEndpoint(ApiEndpoints.authLogin),
+      url: Endpoints.authLogin,
       payload: {"email": email.trim(), "password": password.trim()},
     );
 
     if (res != null && res["authToken"] != null) {
       final token = res["authToken"].toString();
+      final refresh = (res["refreshToken"] ?? res["refresh"] ?? token)
+          .toString();
       await _box?.put("authToken", token);
-      await _box?.put("refreshToken", res["refreshToken"]?.toString() ?? "");
+      await _box?.put("refreshToken", refresh);
+      await _box?.put("accountId", kDefaultAccountId);
       await _box?.put("userEmail", email.trim());
 
       _extractJwtClaims(token);
-      await _resolveUserProfile(email.trim());
+      await fetchUserProfile(email: email.trim());
 
       return ApiResponse.success(res, message: "Authentication successful");
     }
 
     return ApiResponse.error(
-      res?["message"]?.toString() ?? "Invalid email or password",
+      res?["error"]?.toString() ??
+          res?["message"]?.toString() ??
+          "Invalid email or password",
     );
   }
 
@@ -51,56 +54,78 @@ class AuthService with HTTPRequests {
     try {
       final parts = token.split(".");
       if (parts.length == 3) {
-        final decoded = utf8.decode(
-          base64Url.decode(base64Url.normalize(parts[1])),
+        final decoded = jsonDecode(
+          utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
         );
-        final data = jsonDecode(decoded);
-        if (data is Map) {
-          final id = data["_id"] ?? data["id"] ?? data["userId"];
-          if (id != null) {
-            _box?.put("userId", id.toString());
+        if (decoded is Map) {
+          final payloadData = decoded["data"] is Map
+              ? decoded["data"] as Map
+              : null;
+          final id =
+              decoded["_id"] ??
+              decoded["id"] ??
+              decoded["userId"] ??
+              payloadData?["uid"] ??
+              payloadData?["_id"] ??
+              payloadData?["id"] ??
+              payloadData?["userId"];
+          if (id != null) _box?.put("userId", id.toString());
+
+          final storeId = decoded["storeId"] ?? payloadData?["storeId"];
+          if (storeId != null) {
+            _box?.put("userStoreId", storeId.toString());
           }
-          if (data["storeId"] != null) {
-            _box?.put("userStoreId", data["storeId"].toString());
-          }
-          if (data["name"] != null) {
-            _box?.put("userName", data["name"].toString());
+
+          final name = decoded["name"] ?? payloadData?["name"];
+          if (name != null) {
+            _box?.put("userName", name.toString());
           }
         }
       }
     } catch (_) {}
   }
 
-  Future<void> _resolveUserProfile(String email) async {
+  Future<UserModel?> fetchUserProfile({String? email, String? userId}) async {
     try {
-      final res = await getRequest(apiEndpoint(ApiEndpoints.authUsers));
+      final res = await getRequest(Endpoints.authUsers);
       final list = res?["data"];
       if (list is List) {
-        final match = list.firstWhere(
-          (u) =>
-              u is Map &&
-              u["email"]?.toString().toLowerCase() == email.toLowerCase(),
-          orElse: () => null,
-        );
+        final targetEmail = (email ?? currentEmail)?.trim().toLowerCase();
+        final targetId = (userId ?? currentUserId)?.trim();
+
+        final match = list.firstWhere((u) {
+          if (u is! Map) return false;
+          final uEmail = u["email"]?.toString().trim().toLowerCase();
+          final uId = u["_id"]?.toString().trim() ?? u["id"]?.toString().trim();
+          if (targetEmail != null &&
+              targetEmail.isNotEmpty &&
+              uEmail == targetEmail) {
+            return true;
+          }
+          if (targetId != null && targetId.isNotEmpty && uId == targetId) {
+            return true;
+          }
+          return false;
+        }, orElse: () => null);
+
         if (match is Map) {
-          if (match["_id"] != null) {
-            await _box?.put("userId", match["_id"].toString());
+          final user = UserModel.fromJson(Map<String, dynamic>.from(match));
+          if (user.id.isNotEmpty) await _box?.put("userId", user.id);
+          if (user.name.isNotEmpty) await _box?.put("userName", user.name);
+          if (user.email.isNotEmpty) await _box?.put("userEmail", user.email);
+          if (user.storeId.isNotEmpty) {
+            await _box?.put("userStoreId", user.storeId);
           }
-          if (match["name"] != null) {
-            await _box?.put("userName", match["name"].toString());
-          }
-          if (match["storeId"] != null) {
-            await _box?.put("userStoreId", match["storeId"].toString());
-          }
+          return user;
         }
       }
     } catch (_) {}
+    return null;
   }
 
-  /// Verify session validity via GET /secure/verify
   Future<bool> verifyToken() async {
     try {
-      final res = await getRequest(apiEndpoint(ApiEndpoints.verifyToken));
+      final res = await getRequest(Endpoints.verifyToken);
       return res != null &&
           (res["status"] == "Success" ||
               res["valid"] == true ||
@@ -110,24 +135,26 @@ class AuthService with HTTPRequests {
     }
   }
 
-  /// Refresh token pair via GET /jwt/refresh
   Future<ApiResponse<Map<String, dynamic>>> refreshToken() async {
-    final res = await getRequest(apiEndpoint(ApiEndpoints.refreshToken));
+    final res = await getRequest(Endpoints.refreshToken);
     if (res != null && res["authToken"] != null) {
       final token = res["authToken"].toString();
+      final refresh = (res["refreshToken"] ?? res["refresh"] ?? token)
+          .toString();
       await _box?.put("authToken", token);
-      if (res["refreshToken"] != null) {
-        await _box?.put("refreshToken", res["refreshToken"].toString());
-      }
+      await _box?.put("refreshToken", refresh);
+      await _box?.put("accountId", kDefaultAccountId);
       _extractJwtClaims(token);
+      await fetchUserProfile();
       return ApiResponse.success(res);
     }
     return ApiResponse.error(
-      res?["message"]?.toString() ?? "Failed to refresh token",
+      res?["error"]?.toString() ??
+          res?["message"]?.toString() ??
+          "Failed to refresh token",
     );
   }
 
-  /// Sign out and clear stored session tokens
   Future<void> logout() async {
     await _box?.delete("authToken");
     await _box?.delete("refreshToken");
@@ -137,18 +164,14 @@ class AuthService with HTTPRequests {
     await _box?.delete("userStoreId");
   }
 
-  /// Retrieve current user model
   UserModel? getCurrentUser() {
     final email = currentEmail;
     if (email == null || email.isEmpty) return null;
     return UserModel(
-      id: currentUserId ?? "u-${email.hashCode.abs()}",
-      name:
-          currentUserName ??
-          email.split("@").first.replaceAll(".", " ").toUpperCase(),
+      id: currentUserId ?? "",
+      name: currentUserName ?? "",
       email: email,
       storeId: currentStoreId ?? "",
-      isValid: true,
     );
   }
 }

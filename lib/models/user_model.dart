@@ -4,8 +4,6 @@ class UserModel {
   final String email;
   final String storeId;
   final bool isValid;
-  final String? storeName;
-  final DateTime? createdAt;
 
   const UserModel({
     required this.id,
@@ -13,8 +11,6 @@ class UserModel {
     required this.email,
     required this.storeId,
     this.isValid = true,
-    this.storeName,
-    this.createdAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -23,24 +19,8 @@ class UserModel {
       name: json["name"]?.toString() ?? "",
       email: json["email"]?.toString() ?? "",
       storeId: json["storeId"]?.toString() ?? "",
-      isValid: json["isValid"] == null ? true : (json["isValid"] == true),
-      storeName: json["storeName"]?.toString(),
-      createdAt: json["createdAt"] != null
-          ? DateTime.tryParse(json["createdAt"].toString())
-          : null,
+      isValid: json["isValid"] is bool ? json["isValid"] as bool : true,
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      "_id": id,
-      "name": name,
-      "email": email,
-      "storeId": storeId,
-      "isValid": isValid,
-      "storeName": storeName,
-      "createdAt": createdAt?.toIso8601String(),
-    };
   }
 
   UserModel copyWith({
@@ -49,8 +29,6 @@ class UserModel {
     String? email,
     String? storeId,
     bool? isValid,
-    String? storeName,
-    DateTime? createdAt,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -58,8 +36,6 @@ class UserModel {
       email: email ?? this.email,
       storeId: storeId ?? this.storeId,
       isValid: isValid ?? this.isValid,
-      storeName: storeName ?? this.storeName,
-      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

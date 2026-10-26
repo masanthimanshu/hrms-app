@@ -12,16 +12,13 @@ class AuthState {
   final String? errorMessage;
 
   const AuthState({
-    required this.isAuthenticated,
+    this.isAuthenticated = false,
     this.isLoading = false,
     this.authToken,
     this.refreshToken,
     this.currentUser,
     this.errorMessage,
   });
-
-  factory AuthState.initial() =>
-      const AuthState(isAuthenticated: false, isLoading: false);
 
   AuthState copyWith({
     bool? isAuthenticated,
@@ -45,65 +42,67 @@ class AuthState {
 class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
-    Future.microtask(() => checkInitialSession());
-    return AuthState.initial();
+    Future.microtask(checkInitialSession);
+    return const AuthState();
   }
 
-  AuthService get _authService => ref.read(authServiceProvider);
+  AuthService get _service => ref.read(authServiceProvider);
 
   Future<void> checkInitialSession() async {
     state = state.copyWith(isLoading: true);
-    if (!_authService.hasSavedToken) {
+    if (!_service.hasSavedToken) {
       state = state.copyWith(isAuthenticated: false, isLoading: false);
       return;
     }
 
     final isValid =
-        await _authService.verifyToken() ||
-        (await _authService.refreshToken()).isSuccess;
+        await _service.verifyToken() ||
+        (await _service.refreshToken()).isSuccess;
 
     if (isValid) {
-      state = state.copyWith(
+      await _service.fetchUserProfile();
+      state = AuthState(
         isAuthenticated: true,
-        isLoading: false,
-        authToken: _authService.currentAuthToken,
-        refreshToken: _authService.currentRefreshToken,
-        currentUser: _authService.getCurrentUser(),
+        authToken: _service.currentAuthToken,
+        refreshToken: _service.currentRefreshToken,
+        currentUser: _service.getCurrentUser(),
       );
     } else {
-      await _authService.logout();
-      state = state.copyWith(isAuthenticated: false, isLoading: false);
+      await _service.logout();
+      state = const AuthState();
+    }
+  }
+
+  Future<void> refreshProfile() async {
+    final updated = await _service.fetchUserProfile();
+    if (updated != null) {
+      state = state.copyWith(currentUser: updated);
     }
   }
 
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
-    final res = await _authService.login(email: email, password: password);
+    final res = await _service.login(email: email, password: password);
     if (res.isSuccess) {
-      state = state.copyWith(
+      state = AuthState(
         isAuthenticated: true,
-        isLoading: false,
-        authToken: _authService.currentAuthToken,
-        refreshToken: _authService.currentRefreshToken,
-        currentUser: _authService.getCurrentUser(),
+        authToken: _service.currentAuthToken,
+        refreshToken: _service.currentRefreshToken,
+        currentUser: _service.getCurrentUser(),
       );
       return true;
     }
 
-    state = state.copyWith(
-      isAuthenticated: false,
-      isLoading: false,
-      errorMessage: res.message ?? "Authentication failed",
-    );
+    state = AuthState(errorMessage: res.message ?? "Authentication failed");
     return false;
   }
 
-  Future<bool> verifySession() => _authService.verifyToken();
+  Future<bool> verifySession() => _service.verifyToken();
 
   Future<void> logout() async {
-    await _authService.logout();
-    state = AuthState.initial();
+    await _service.logout();
+    state = const AuthState();
   }
 }
 

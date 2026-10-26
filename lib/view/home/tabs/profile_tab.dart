@@ -68,21 +68,40 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
     );
   }
 
+  Widget _darkPill(Widget child) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.zinc900,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppColors.zinc800, width: 1),
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final storeState = ref.watch(storeProvider);
 
     final currentUser = authState.currentUser;
-    final userName = currentUser?.name ?? "Alex Vance";
-    final email = currentUser?.email ?? "alex.vance@example.com";
+    final hasUser = currentUser != null && currentUser.name.isNotEmpty;
+    final userName = hasUser
+        ? currentUser.name
+        : (authState.isLoading ? "Loading..." : "Employee");
+    final email = (currentUser != null && currentUser.email.isNotEmpty)
+        ? currentUser.email
+        : (authState.isLoading ? "Loading..." : "");
 
     StoreModel? assignedStore;
     if (storeState.stores.isNotEmpty) {
-      assignedStore = storeState.stores.firstWhere(
+      final matches = storeState.stores.where(
         (s) => s.id == currentUser?.storeId,
-        orElse: () => storeState.stores.first,
       );
+      assignedStore = matches.isNotEmpty
+          ? matches.first
+          : storeState.stores.first;
     }
 
     return SingleChildScrollView(
@@ -97,48 +116,67 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
           ),
           const SizedBox(height: 16),
 
-          // Luxury Digital Employee Badge Card
+          // Digital Employee Badge Card
           MonochromeCard(
             backgroundColor: AppColors.zinc950,
             borderColor: AppColors.zinc800,
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Badge Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "EMPLOYEE PASS",
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                        color: AppColors.zinc400,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.zinc900,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: AppColors.zinc700, width: 1),
-                      ),
-                      child: const Text(
-                        "ACTIVE",
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.white,
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.badge_outlined,
+                          size: 14,
+                          color: AppColors.zinc400,
                         ),
+                        SizedBox(width: 6),
+                        Text(
+                          "EMPLOYEE PASS",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5,
+                            color: AppColors.zinc400,
+                          ),
+                        ),
+                      ],
+                    ),
+                    _darkPill(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: AppColors.statusActiveDot,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          const Text(
+                            "ACTIVE",
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 18),
+
+                // Employee Identity
                 Row(
                   children: [
                     Container(
@@ -193,45 +231,126 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                 const SizedBox(height: 18),
                 const Divider(color: AppColors.zinc800, height: 1),
                 const SizedBox(height: 14),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                // Assigned Facility
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "ASSIGNED FACILITY",
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.zinc500,
-                              letterSpacing: 0.8,
-                            ),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.storefront_outlined,
+                          size: 13,
+                          color: AppColors.zinc400,
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          "ASSIGNED FACILITY",
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.zinc400,
+                            letterSpacing: 1.0,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            assignedStore?.name ??
-                                "Headquarters - San Francisco",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.zinc200,
-                            ),
+                        ),
+                        const Spacer(),
+                        _darkPill(
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.gps_fixed,
+                                size: 9,
+                                color: AppColors.zinc400,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                AppFormatters.formatCoordinates(
+                                  assignedStore?.latitude,
+                                  assignedStore?.longitude,
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontFamily: "monospace",
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.zinc300,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      assignedStore?.name ??
+                          (storeState.isLoading
+                              ? "Loading facility..."
+                              : "Workplace Facility"),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.white,
+                        letterSpacing: -0.2,
+                        height: 1.25,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "${assignedStore?.latitude ?? '37.7892'}, ${assignedStore?.longitude ?? '-122.3982'}",
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontFamily: "monospace",
-                        color: AppColors.zinc400,
+                    if (assignedStore?.address != null &&
+                        assignedStore!.address.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        assignedStore.address,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.zinc400,
+                          height: 1.3,
+                        ),
                       ),
+                    ],
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        _darkPill(
+                          const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.shield_outlined,
+                                size: 10,
+                                color: AppColors.zinc400,
+                              ),
+                              SizedBox(width: 3),
+                              Text(
+                                "Geofenced 1000m",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.zinc400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (currentUser?.id != null &&
+                            currentUser!.id.isNotEmpty)
+                          _darkPill(
+                            Text(
+                              "ID: ${AppFormatters.maskToken(currentUser.id, prefix: 6, suffix: 4)}",
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontFamily: "monospace",
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.zinc400,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -240,7 +359,7 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
           ),
           const SizedBox(height: 16),
 
-          // Session & Token Diagnostics
+          // Session Diagnostics
           MonochromeCard(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -273,7 +392,7 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (_verifyMessage != null) ...[
+                if (_verifyMessage != null)
                   Container(
                     padding: const EdgeInsets.all(10),
                     margin: const EdgeInsets.only(bottom: 12),
@@ -291,7 +410,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                       ),
                     ),
                   ),
-                ],
                 MonochromeButton(
                   text: "Verify Security Signature",
                   icon: Icons.shield_outlined,

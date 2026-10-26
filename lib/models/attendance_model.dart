@@ -1,8 +1,6 @@
 class AttendanceModel {
   final String id;
-  final String userId;
-  final String? userName;
-  final String? storeId;
+  final String? userId;
   final String? storeName;
   final String latitude;
   final String longitude;
@@ -13,9 +11,7 @@ class AttendanceModel {
 
   const AttendanceModel({
     required this.id,
-    required this.userId,
-    this.userName,
-    this.storeId,
+    this.userId,
     this.storeName,
     required this.latitude,
     required this.longitude,
@@ -27,16 +23,13 @@ class AttendanceModel {
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     final dist = json["distance"]?.toString();
-    final verifiedVal = json["isVerified"];
-    final verified = verifiedVal is bool
-        ? verifiedVal
+    final verified = json["isVerified"] is bool
+        ? json["isVerified"] as bool
         : (dist == null || (double.tryParse(dist) ?? 0) <= 1000);
 
     return AttendanceModel(
       id: json["_id"]?.toString() ?? json["id"]?.toString() ?? "",
-      userId: json["userId"]?.toString() ?? "",
-      userName: json["userName"]?.toString(),
-      storeId: json["storeId"]?.toString(),
+      userId: json["userId"]?.toString(),
       storeName: json["storeName"]?.toString(),
       latitude: json["latitude"]?.toString() ?? "0.0",
       longitude: json["longitude"]?.toString() ?? "0.0",
@@ -46,7 +39,6 @@ class AttendanceModel {
           DateTime.tryParse(
             json["createdAt"]?.toString() ??
                 json["timestamp"]?.toString() ??
-                json["updatedAt"]?.toString() ??
                 "",
           ) ??
           DateTime.now(),
@@ -54,27 +46,9 @@ class AttendanceModel {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      "_id": id,
-      "userId": userId,
-      "userName": userName,
-      "storeId": storeId,
-      "storeName": storeName,
-      "latitude": latitude,
-      "longitude": longitude,
-      "distance": distance,
-      "imageUrl": imageUrl,
-      "timestamp": timestamp.toIso8601String(),
-      "isVerified": isVerified,
-    };
-  }
-
   AttendanceModel copyWith({
     String? id,
     String? userId,
-    String? userName,
-    String? storeId,
     String? storeName,
     String? latitude,
     String? longitude,
@@ -86,8 +60,6 @@ class AttendanceModel {
     return AttendanceModel(
       id: id ?? this.id,
       userId: userId ?? this.userId,
-      userName: userName ?? this.userName,
-      storeId: storeId ?? this.storeId,
       storeName: storeName ?? this.storeName,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,

@@ -18,7 +18,9 @@ import "/widgets/monochrome_card.dart";
 import "/widgets/status_pill.dart";
 
 class AttendanceTab extends ConsumerStatefulWidget {
-  const AttendanceTab({super.key});
+  final VoidCallback? onNavigateToHistory;
+
+  const AttendanceTab({super.key, this.onNavigateToHistory});
 
   @override
   ConsumerState<AttendanceTab> createState() => _AttendanceTabState();
@@ -35,11 +37,7 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
     super.initState();
     _currentTime = DateTime.now();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() {
-          _currentTime = DateTime.now();
-        });
-      }
+      if (mounted) setState(() => _currentTime = DateTime.now());
     });
   }
 
@@ -51,37 +49,28 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
 
   Future<void> _capturePhoto() async {
     try {
-      final XFile? photo = await _picker.pickImage(
+      final photo = await _picker.pickImage(
         source: ImageSource.camera,
         preferredCameraDevice: CameraDevice.front,
         maxWidth: 1024,
         maxHeight: 1024,
         imageQuality: 85,
       );
-
-      if (photo != null) {
-        setState(() {
-          _localPhotoPath = photo.path;
-        });
-        ref.read(attendanceProvider.notifier).setCapturedPhoto(photo.path);
+      if (photo != null && mounted) {
+        setState(() => _localPhotoPath = photo.path);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Camera access error: $e")));
+            .showSnackBar(SnackBar(content: Text("Camera error: $e")));
       }
     }
   }
 
-  void _clearPhoto() {
-    setState(() {
-      _localPhotoPath = null;
-    });
-    ref.read(attendanceProvider.notifier).clearCapturedPhoto();
-  }
+  void _clearPhoto() => setState(() => _localPhotoPath = null);
 
   void _punchAttendance(
-    StoreModel? assignedStore,
+    StoreModel? store,
     String? userId,
     String? userName,
   ) async {
@@ -97,24 +86,46 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
       return;
     }
 
+    final attState = ref.read(attendanceProvider);
+    if (attState.currentLatitude == null || attState.currentLongitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Live GPS coordinates required. Please wait for GPS to resolve.",
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (userId == null || userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "User session not identified. Please wait for profile to load.",
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     final success = await ref
         .read(attendanceProvider.notifier)
         .checkIn(
-          userId: userId ?? "emp-user",
+          userId: userId,
           userName: userName,
-          storeName: assignedStore?.name,
-          photoPath: _localPhotoPath,
+          storeName: store?.name,
+          photoPath: _localPhotoPath!,
         );
 
     if (!mounted) return;
 
     if (success) {
-      setState(() {
-        _localPhotoPath = null;
-      });
+      setState(() => _localPhotoPath = null);
       final msg =
-          ref.read(attendanceProvider).message ??
-          "Attendance successfully verified and recorded!";
+          ref.read(attendanceProvider).message ?? "Attendance recorded!";
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(msg),
@@ -125,7 +136,7 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
     } else {
       final err =
           ref.read(attendanceProvider).errorMessage ??
-          "Failed to record attendance. Please try again.";
+          "Failed to log attendance.";
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(err),
@@ -136,6 +147,40 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
     }
   }
 
+  Widget _reticleCorner({
+    double? top,
+    double? bottom,
+    double? left,
+    double? right,
+  }) {
+    return Positioned(
+      top: top,
+      bottom: bottom,
+      left: left,
+      right: right,
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          border: Border(
+            top: top != null
+                ? const BorderSide(color: AppColors.white, width: 2)
+                : BorderSide.none,
+            bottom: bottom != null
+                ? const BorderSide(color: AppColors.white, width: 2)
+                : BorderSide.none,
+            left: left != null
+                ? const BorderSide(color: AppColors.white, width: 2)
+                : BorderSide.none,
+            right: right != null
+                ? const BorderSide(color: AppColors.white, width: 2)
+                : BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -143,33 +188,42 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
     final attendanceState = ref.watch(attendanceProvider);
 
     final currentUser = authState.currentUser;
-    final userName = currentUser?.name ?? "Employee";
+    final hasUser = currentUser != null && currentUser.name.isNotEmpty;
+    final userName = hasUser
+        ? currentUser.name
+        : (authState.isLoading ? "Loading..." : "Employee");
 
     StoreModel? assignedStore;
     if (storeState.stores.isNotEmpty) {
-      assignedStore = storeState.stores.firstWhere(
+      final matches = storeState.stores.where(
         (s) => s.id == currentUser?.storeId,
-        orElse: () => storeState.stores.first,
       );
+      assignedStore = matches.isNotEmpty
+          ? matches.first
+          : storeState.stores.first;
     }
 
     final hasCheckedIn = attendanceState.hasCheckedInToday;
 
-    // Format clock
-    final hour = _currentTime.hour;
-    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    final period = hour >= 12 ? "PM" : "AM";
+    // Clock format
+    final h = _currentTime.hour;
+    final displayHour = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+    final period = h >= 12 ? "PM" : "AM";
     final timeStr =
         "${displayHour.toString().padLeft(2, '0')}:${_currentTime.minute.toString().padLeft(2, '0')}:${_currentTime.second.toString().padLeft(2, '0')} $period";
 
-    double? liveDistanceMeters;
-    if (assignedStore?.latitude != null && assignedStore?.longitude != null) {
-      final sLat = double.tryParse(assignedStore!.latitude);
+    final hasGps =
+        attendanceState.currentLatitude != null &&
+        attendanceState.currentLongitude != null;
+
+    double? liveDistance;
+    if (hasGps && assignedStore != null) {
+      final sLat = double.tryParse(assignedStore.latitude);
       final sLng = double.tryParse(assignedStore.longitude);
-      final cLat = double.tryParse(attendanceState.currentLatitude);
-      final cLng = double.tryParse(attendanceState.currentLongitude);
+      final cLat = double.tryParse(attendanceState.currentLatitude!);
+      final cLng = double.tryParse(attendanceState.currentLongitude!);
       if (sLat != null && sLng != null && cLat != null && cLng != null) {
-        liveDistanceMeters = AttendanceService.calculateDistanceMeters(
+        liveDistance = AttendanceService.calculateDistanceMeters(
           cLat,
           cLng,
           sLat,
@@ -178,8 +232,7 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
       }
     }
 
-    final isWithinRange =
-        liveDistanceMeters == null || liveDistanceMeters <= 1000;
+    final inRange = liveDistance != null && liveDistance <= 1000;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -187,7 +240,7 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Live Clock & Date Terminal Card
+          // Live Clock Card
           MonochromeCard(
             backgroundColor: AppColors.zinc950,
             borderColor: AppColors.zinc800,
@@ -269,59 +322,122 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
           const SizedBox(height: 14),
 
           // Geofence & Location Bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.zinc200, width: 1),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.gps_fixed, size: 16, color: AppColors.zinc800),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        assignedStore?.name ?? "Headquarters - San Francisco",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.zinc950,
-                        ),
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        liveDistanceMeters != null
-                            ? "GPS: ${attendanceState.currentLatitude}, ${attendanceState.currentLongitude} • ${liveDistanceMeters.round()}m from facility"
-                            : "GPS: ${attendanceState.currentLatitude}, ${attendanceState.currentLongitude} • In Geofence",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontFamily: "monospace",
-                          color: AppColors.zinc500,
-                        ),
-                      ),
-                    ],
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              ref
+                  .read(attendanceProvider.notifier)
+                  .startLocationStream(forceCurrent: true);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Refreshing live GPS coordinates..."),
+                  duration: Duration(milliseconds: 1000),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.zinc200, width: 1),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    attendanceState.isRealTimeGps
+                        ? Icons.gps_fixed
+                        : Icons.location_searching,
+                    size: 16,
+                    color: attendanceState.isRealTimeGps
+                        ? AppColors.zinc950
+                        : AppColors.zinc500,
                   ),
-                ),
-                StatusPill(
-                  label: liveDistanceMeters != null
-                      ? (isWithinRange
-                            ? "In Range (${liveDistanceMeters.round()}m)"
-                            : "Far (${liveDistanceMeters.round()}m)")
-                      : "In Range",
-                  type: isWithinRange
-                      ? StatusPillType.active
-                      : StatusPillType.warning,
-                  showDot: true,
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                assignedStore?.name ??
+                                    (storeState.isLoading
+                                        ? "Loading facility..."
+                                        : "Workplace Facility"),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.zinc950,
+                                ),
+                              ),
+                            ),
+                            if (attendanceState.isRealTimeGps) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.zinc100,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: AppColors.zinc300,
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: const Text(
+                                  "LIVE",
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.zinc900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          hasGps
+                              ? (liveDistance != null
+                                    ? "GPS: ${attendanceState.currentLatitude}, ${attendanceState.currentLongitude} • ${liveDistance.round()}m from facility"
+                                    : "GPS: ${attendanceState.currentLatitude}, ${attendanceState.currentLongitude}")
+                              : "Locating live GPS coordinates...",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontFamily: "monospace",
+                            color: AppColors.zinc500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  StatusPill(
+                    label: liveDistance != null
+                        ? (inRange
+                              ? "In Range (${liveDistance.round()}m)"
+                              : "Far (${liveDistance.round()}m)")
+                        : (hasGps ? "Live GPS" : "Locating"),
+                    type: liveDistance != null
+                        ? (inRange
+                              ? StatusPillType.active
+                              : StatusPillType.warning)
+                        : (hasGps
+                              ? StatusPillType.neutral
+                              : StatusPillType.warning),
+                    showDot: true,
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 18),
@@ -344,23 +460,20 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                         letterSpacing: -0.2,
                       ),
                     ),
-                    if (_localPhotoPath != null)
-                      const StatusPill(
-                        label: "Photo Ready",
-                        type: StatusPillType.active,
-                        showDot: true,
-                      )
-                    else
-                      const StatusPill(
-                        label: "Camera Only",
-                        type: StatusPillType.neutral,
-                        showDot: false,
-                      ),
+                    StatusPill(
+                      label: _localPhotoPath != null
+                          ? "Photo Ready"
+                          : "Camera Only",
+                      type: _localPhotoPath != null
+                          ? StatusPillType.active
+                          : StatusPillType.neutral,
+                      showDot: _localPhotoPath != null,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                // Camera Viewfinder Box
+                // Viewfinder Box
                 Container(
                   height: 230,
                   decoration: BoxDecoration(
@@ -391,7 +504,6 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                           Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Viewfinder target ring
                               Container(
                                 width: 92,
                                 height: 110,
@@ -430,94 +542,18 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                             ],
                           ),
 
-                        // Corner Viewfinder Reticles
-                        Positioned(
-                          top: 14,
-                          left: 14,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                top: BorderSide(
-                                  color: AppColors.white,
-                                  width: 2,
-                                ),
-                                left: BorderSide(
-                                  color: AppColors.white,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 14,
-                          right: 14,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                top: BorderSide(
-                                  color: AppColors.white,
-                                  width: 2,
-                                ),
-                                right: BorderSide(
-                                  color: AppColors.white,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 14,
-                          left: 14,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: AppColors.white,
-                                  width: 2,
-                                ),
-                                left: BorderSide(
-                                  color: AppColors.white,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 14,
-                          right: 14,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: AppColors.white,
-                                  width: 2,
-                                ),
-                                right: BorderSide(
-                                  color: AppColors.white,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                        // Corner Reticles
+                        _reticleCorner(top: 14, left: 14),
+                        _reticleCorner(top: 14, right: 14),
+                        _reticleCorner(bottom: 14, left: 14),
+                        _reticleCorner(bottom: 14, right: 14),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 14),
 
-                // Live Camera Shutter Button
+                // Camera Action
                 Row(
                   children: [
                     Expanded(
@@ -569,7 +605,7 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
           ),
           const SizedBox(height: 16),
 
-          // Primary Punch In Action
+          // Submit Button
           MonochromeButton(
             text: _localPhotoPath == null
                 ? "Capture Photo Above to Punch In"
@@ -583,60 +619,73 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
           const SizedBox(height: 20),
 
           // Today's Status Banner
-          MonochromeCard(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: hasCheckedIn ? AppColors.zinc950 : AppColors.zinc100,
-                    borderRadius: BorderRadius.circular(10),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              ref
+                  .read(attendanceProvider.notifier)
+                  .setFilter(AttendanceFilter.today);
+              widget.onNavigateToHistory?.call();
+            },
+            child: MonochromeCard(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: hasCheckedIn
+                          ? AppColors.zinc950
+                          : AppColors.zinc100,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      hasCheckedIn ? Icons.check : Icons.access_time,
+                      size: 20,
+                      color: hasCheckedIn ? AppColors.white : AppColors.zinc600,
+                    ),
                   ),
-                  child: Icon(
-                    hasCheckedIn ? Icons.check : Icons.access_time,
-                    size: 20,
-                    color: hasCheckedIn ? AppColors.white : AppColors.zinc600,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        hasCheckedIn
-                            ? "Attendance Verified Today"
-                            : "Attendance Pending",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.zinc950,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          hasCheckedIn
+                              ? "Attendance Verified Today"
+                              : "Attendance Pending",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.zinc950,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        hasCheckedIn
-                            ? "Logged at ${AppFormatters.formatTime(attendanceState.latestRecord?.timestamp)}"
-                            : "Take a selfie and punch in to register your day.",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.zinc500,
+                        const SizedBox(height: 2),
+                        Text(
+                          hasCheckedIn
+                              ? "${attendanceState.todayRecords.length} check-in${attendanceState.todayRecords.length == 1 ? '' : 's'} logged today • Tap to view"
+                              : "Take a selfie and punch in to register your day.",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.zinc500,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                StatusPill(
-                  label: hasCheckedIn ? "Logged" : "Pending",
-                  type: hasCheckedIn
-                      ? StatusPillType.active
-                      : StatusPillType.warning,
-                ),
-              ],
+                  StatusPill(
+                    label: hasCheckedIn
+                        ? "${attendanceState.todayRecords.length} Logged"
+                        : "Pending",
+                    type: hasCheckedIn
+                        ? StatusPillType.active
+                        : StatusPillType.warning,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

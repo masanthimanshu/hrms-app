@@ -4,31 +4,19 @@ import "/services/health_service.dart";
 
 class HealthState {
   final HealthStatus status;
-  final bool isChecking;
-
-  const HealthState({required this.status, this.isChecking = false});
-
-  HealthState copyWith({HealthStatus? status, bool? isChecking}) {
-    return HealthState(
-      status: status ?? this.status,
-      isChecking: isChecking ?? this.isChecking,
-    );
-  }
+  const HealthState({this.status = const HealthStatus()});
 }
 
 class HealthNotifier extends Notifier<HealthState> {
   @override
   HealthState build() {
-    Future.microtask(() => checkHealth());
-    return HealthState(status: HealthStatus.initial(), isChecking: false);
+    Future.microtask(checkHealth);
+    return const HealthState();
   }
 
-  HealthService get _service => ref.read(healthServiceProvider);
-
   Future<void> checkHealth() async {
-    state = state.copyWith(isChecking: true);
-    final status = await _service.checkAllHealth();
-    state = state.copyWith(status: status, isChecking: false);
+    final status = await ref.read(healthServiceProvider).checkHealth();
+    state = HealthState(status: status);
   }
 }
 

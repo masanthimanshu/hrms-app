@@ -1,8 +1,7 @@
-import "dart:convert";
 import "dart:io";
 import "dart:math";
 
-import "package:hive_flutter/hive_flutter.dart";
+import "package:flutter/foundation.dart";
 
 import "/models/attendance_model.dart";
 import "/network/api_response.dart";
@@ -10,15 +9,11 @@ import "/network/endpoints.dart";
 import "/network/requests.dart";
 
 class AttendanceService with HTTPRequests {
-  Box? get _box => Hive.isBoxOpen("myBox") ? Hive.box("myBox") : null;
-  static const _storageKey = "attendance_records";
-
-  /// Request presigned AWS S3 upload URL from POST /secure/upload/image
   Future<ApiResponse<Map<String, String>>> requestUploadUrl({
     String text = "Attendance selfie verification",
   }) async {
     final res = await postRequest(
-      url: apiEndpoint(ApiEndpoints.uploadImage),
+      url: Endpoints.uploadImage,
       payload: {"text": text},
     );
 
@@ -34,34 +29,43 @@ class AttendanceService with HTTPRequests {
         "imageKey": imageKey,
       });
     }
-    return ApiResponse.error(
-      res?["message"]?.toString() ?? "Failed to obtain upload URL",
-    );
+    final errorMsg =
+        res?["error"]?.toString() ??
+        res?["message"]?.toString() ??
+        "Failed to obtain upload URL";
+    return ApiResponse.error(errorMsg);
   }
 
-  /// Direct binary upload to AWS S3 using presigned PUT URL
   Future<bool> uploadSelfieToS3({
     required String uploadUrl,
     required String localFilePath,
   }) async {
     try {
-      final bytes = await File(localFilePath).readAsBytes();
+      final file = File(localFilePath);
+      if (!await file.exists()) {
+        debugPrint("[Upload S3] File not found: $localFilePath");
+        return false;
+      }
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) {
+        debugPrint("[Upload S3] File is empty: $localFilePath");
+        return false;
+      }
       return await uploadBinaryToUrl(url: uploadUrl, bytes: bytes);
-    } catch (_) {
+    } catch (e) {
+      debugPrint("[Upload S3] Error reading file: $e");
       return false;
     }
   }
 
-  /// Submit attendance check-in via POST /secure/attendance/add
   Future<ApiResponse<AttendanceModel>> submitAttendance({
     required String latitude,
     required String longitude,
     required String imageUrl,
     String? storeName,
-    String? userName,
   }) async {
     final res = await postRequest(
-      url: apiEndpoint(ApiEndpoints.attendanceAdd),
+      url: Endpoints.attendanceAdd,
       payload: {
         "latitude": latitude,
         "longitude": longitude,
@@ -69,30 +73,61 @@ class AttendanceService with HTTPRequests {
       },
     );
 
-    final dataMap =
-        (res?["data"] ?? res?["attendance"] ?? res) as Map<String, dynamic>?;
-    if (dataMap != null &&
+    final rawData = res?["data"] ?? res?["attendance"] ?? res?["record"] ?? res;
+    final dataMap = rawData is Map ? Map<String, dynamic>.from(rawData) : null;
+
+    final hasRecordData =
+        dataMap != null &&
         (dataMap["_id"] != null ||
             dataMap["id"] != null ||
-            dataMap["userId"] != null)) {
-      final record = AttendanceModel.fromJson(dataMap).copyWith(
-        storeName: storeName ?? dataMap["storeName"]?.toString(),
-        userName: userName ?? dataMap["userName"]?.toString(),
-      );
-      _cacheRecord(record);
-      return ApiResponse.success(record, message: res?["message"]?.toString());
+            dataMap["userId"] != null ||
+            dataMap["distance"] != null);
+
+    final isSuccessStatus =
+        res != null &&
+        res["error"] == null &&
+        (res["status"] == "Attendance added successfully" ||
+            res["status"] == "Success" ||
+            res["status"] == 200 ||
+            res["message"] == "Attendance added successfully" ||
+            res["message"] == "Success" ||
+            hasRecordData);
+
+    if (isSuccessStatus) {
+      final record = hasRecordData
+          ? AttendanceModel.fromJson(
+              dataMap,
+            ).copyWith(storeName: storeName ?? dataMap["storeName"]?.toString())
+          : AttendanceModel(
+              id: dataMap?["_id"]?.toString() ?? "",
+              storeName: storeName,
+              latitude: latitude,
+              longitude: longitude,
+              distance: dataMap?["distance"]?.toString(),
+              imageUrl: imageUrl,
+              timestamp: DateTime.now(),
+              isVerified: true,
+            );
+      final msg =
+          res["status"]?.toString() ??
+          res["message"]?.toString() ??
+          "Attendance recorded successfully";
+      return ApiResponse.success(record, message: msg);
     }
 
-    return ApiResponse.error(
-      res?["message"]?.toString() ?? "Failed to record attendance",
-    );
+    final errorMsg =
+        res?["error"]?.toString() ??
+        res?["message"]?.toString() ??
+        res?["status"]?.toString() ??
+        "Failed to record attendance";
+    return ApiResponse.error(errorMsg);
   }
 
-  /// Fetch all attendance records via GET /secure/attendance/all
-  Future<ApiResponse<List<AttendanceModel>>> fetchAllAttendance({
+  Future<ApiResponse<List<AttendanceModel>>> _fetchList(
+    String endpoint,
     String? fallbackStoreName,
-  }) async {
-    final res = await getRequest(apiEndpoint(ApiEndpoints.attendanceAll));
+  ) async {
+    final res = await getRequest(endpoint);
     final rawList = res?["data"] ?? res?["attendance"];
 
     if (rawList is List) {
@@ -100,48 +135,31 @@ class AttendanceService with HTTPRequests {
         final rec = AttendanceModel.fromJson(
           Map<String, dynamic>.from(item as Map),
         );
-        return rec.storeName == null && fallbackStoreName != null
+        return (rec.storeName == null || rec.storeName!.isEmpty) &&
+                fallbackStoreName != null
             ? rec.copyWith(storeName: fallbackStoreName)
             : rec;
       }).toList();
 
       records.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      _saveAllToCache(records);
       return ApiResponse.success(records);
     }
 
-    return ApiResponse.error(
-      res?["message"]?.toString() ?? "No attendance records found",
-    );
+    final errorMsg =
+        res?["error"]?.toString() ??
+        res?["message"]?.toString() ??
+        "No records found";
+    return ApiResponse.error(errorMsg);
   }
 
-  /// Cached records for offline & instant initial display
-  List<AttendanceModel> getCachedAttendanceLogs() {
-    try {
-      final raw = _box?.get(_storageKey);
-      if (raw != null) {
-        final List<dynamic> decoded = jsonDecode(raw.toString());
-        return decoded
-            .map((e) => AttendanceModel.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
-      }
-    } catch (_) {}
-    return [];
-  }
+  Future<ApiResponse<List<AttendanceModel>>> fetchTodayAttendance({
+    String? fallbackStoreName,
+  }) => _fetchList(Endpoints.attendanceToday, fallbackStoreName);
 
-  void _cacheRecord(AttendanceModel record) {
-    final cached = getCachedAttendanceLogs();
-    _saveAllToCache([record, ...cached.where((r) => r.id != record.id)]);
-  }
+  Future<ApiResponse<List<AttendanceModel>>> fetchAllAttendance({
+    String? fallbackStoreName,
+  }) => _fetchList(Endpoints.attendanceAll, fallbackStoreName);
 
-  void _saveAllToCache(List<AttendanceModel> list) {
-    try {
-      final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
-      _box?.put(_storageKey, encoded);
-    } catch (_) {}
-  }
-
-  /// Client-side distance between two lat/lng coordinates in meters (Haversine formula)
   static double calculateDistanceMeters(
     double lat1,
     double lon1,
