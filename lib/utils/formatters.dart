@@ -16,9 +16,12 @@ class AppFormatters {
     "Dec",
   ];
 
-  static DateTime? _parse(dynamic date) => date is DateTime
-      ? date
-      : (date != null ? DateTime.tryParse(date.toString()) : null);
+  static DateTime? _parse(dynamic date) {
+    if (date == null) return null;
+    if (date is DateTime) return date.toLocal();
+    final parsed = DateTime.tryParse(date.toString());
+    return parsed?.toLocal();
+  }
 
   /// Format date to "22 Oct 2026, 14:30"
   static String formatDate(dynamic date) {

@@ -40,7 +40,7 @@ class AttendanceModel {
             json["createdAt"]?.toString() ??
                 json["timestamp"]?.toString() ??
                 "",
-          ) ??
+          )?.toLocal() ??
           DateTime.now(),
       isVerified: verified,
     );

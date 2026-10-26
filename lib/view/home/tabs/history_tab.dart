@@ -35,6 +35,13 @@ class HistoryTab extends ConsumerWidget {
     final allRecords = attendanceState.allRecords;
     final records = attendanceState.records;
 
+    final latestPunch = todayRecords.isNotEmpty
+        ? todayRecords.reduce(
+            (curr, next) =>
+                curr.timestamp.isAfter(next.timestamp) ? curr : next,
+          )
+        : null;
+
     final verifiedCount = records.where((r) => r.isVerified).length;
     final verificationRate = records.isEmpty
         ? "100%"
@@ -55,7 +62,7 @@ class HistoryTab extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -63,7 +70,7 @@ class HistoryTab extends ConsumerWidget {
               title: "Attendance Logs",
               subtitle: "Today's check-ins & complete timesheet audit",
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Segmented Control
             Container(
@@ -107,7 +114,7 @@ class HistoryTab extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // KPI Summary Cards
             Row(
@@ -127,16 +134,14 @@ class HistoryTab extends ConsumerWidget {
                       Expanded(
                         child: StatCard(
                           title: "Latest Punch",
-                          value: todayRecords.isEmpty
+                          value: latestPunch == null
                               ? "--:--"
-                              : AppFormatters.formatTime(
-                                  todayRecords.first.timestamp,
-                                ),
-                          subtitle: todayRecords.isEmpty
+                              : AppFormatters.formatTime(latestPunch.timestamp),
+                          subtitle: latestPunch == null
                               ? "Awaiting check-in"
-                              : (todayRecords.first.distance != null
-                                    ? "${todayRecords.first.distance}m from facility"
-                                    : (todayRecords.first.isVerified
+                              : (latestPunch.distance != null
+                                    ? "${latestPunch.distance}m from facility"
+                                    : (latestPunch.isVerified
                                           ? "Within 1000m range"
                                           : "Out of range")),
                           icon: Icons.access_time,
@@ -164,14 +169,14 @@ class HistoryTab extends ConsumerWidget {
                       ),
                     ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Section Header for Logs
             SectionHeader(
               title: isToday ? "Today's Punches" : "Check-In Logs",
               subtitle: isToday
-                  ? "Real-time logs fetched from /secure/attendance/today"
-                  : "All-time history fetched from /secure/attendance/all",
+                  ? "Real-time records from today's session"
+                  : "Complete attendance timesheet audit",
               action: isToday
                   ? StatusPill(
                       label: "${todayRecords.length} Today",
@@ -189,7 +194,7 @@ class HistoryTab extends ConsumerWidget {
                       ),
                     ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
             if (attendanceState.isLoading && records.isEmpty)
               const Padding(

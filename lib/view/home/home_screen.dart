@@ -70,7 +70,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.zinc200,
                     ),
                     Expanded(
-                      child: Center(
+                      child: Align(
+                        alignment: Alignment.topCenter,
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 600),
                           child: tabs[_currentTabIndex],
@@ -79,7 +80,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 )
-              : Center(
+              : Align(
+                  alignment: Alignment.topCenter,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 540),
                     child: tabs[_currentTabIndex],
