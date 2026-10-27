@@ -653,7 +653,7 @@ class _AttendanceTabState extends ConsumerState<AttendanceTab> {
                       children: [
                         Text(
                           hasCheckedIn
-                              ? "Attendance Verified Today"
+                              ? "Attendance Verified"
                               : "Attendance Pending",
                           style: const TextStyle(
                             fontSize: 14,
