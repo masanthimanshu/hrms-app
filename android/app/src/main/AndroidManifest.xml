@@ -7,7 +7,7 @@
     <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
 
     <application
-        android:label="hrms"
+        android:label="Scoobies HRMS"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
